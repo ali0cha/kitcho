@@ -89,6 +89,6 @@ bin/import_recipes.php, seed/recipes.json
 
 ## Limites connues
 
-- Pas de réinitialisation de mot de passe par e-mail (à ajouter selon votre configuration d'envoi de courriels).
+- Pas de « mot de passe oublié » par e-mail : l'administrateur du serveur réinitialise un mot de passe avec `php bin/reset_password.php <email>` (voir TRUENAS.md pour Docker).
 - Semaine du lundi au dimanche ; la liste de courses porte sur une semaine à la fois.
 - L'historique daté de votre Excel n'est pas importé (dates à la semaine, jours inconnus, et trop ancien pour influencer la génération).

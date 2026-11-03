@@ -58,6 +58,24 @@ sudo docker exec -i NOM-DU-CONTENEUR-DB sh -c 'mariadb -u"$MARIADB_USER" -p"$MAR
 
 Placez Kitcho derrière un reverse proxy HTTPS (Nginx Proxy Manager, Traefik, Caddy…). Il doit transmettre `X-Forwarded-Proto: https` : le cookie de session passe alors en `Secure`. N'ouvrez pas le port 30080 directement sur Internet, et n'exposez jamais le port de la base (il n'est pas publié).
 
+## Mot de passe oublié
+
+Il n'y a pas d'envoi d'e-mail : on réinitialise le mot de passe depuis le *Shell* de TrueNAS. Trouvez d'abord le nom du conteneur de l'application (`sudo docker ps | grep kitcho`, celui qui expose le port 30080), puis :
+
+```bash
+sudo docker exec -it NOM-DU-CONTENEUR-APP php bin/reset_password.php votre@email
+```
+
+Le script demande le nouveau mot de passe (saisie masquée) ; sans e-mail, il liste les comptes. Il lève aussi un éventuel blocage après trop d'essais ratés.
+
+Si votre image est antérieure à ce script, utilisez cette variante (le mot de passe n'apparaît pas dans l'historique du shell) :
+
+```bash
+read -rsp "Nouveau mot de passe (8 caractères min.) : " NEWPW; echo
+sudo docker exec -e NEWPW="$NEWPW" -e EMAIL=votre@email NOM-DU-CONTENEUR-APP php -r '$p=new PDO("mysql:host=".getenv("DB_HOST").";dbname=".getenv("DB_NAME"),getenv("DB_USER"),getenv("DB_PASS")); $s=$p->prepare("UPDATE users SET password_hash=? WHERE email=?"); $s->execute([password_hash(getenv("NEWPW"),PASSWORD_DEFAULT),strtolower(getenv("EMAIL"))]); $p->prepare("DELETE FROM login_attempts WHERE email=?")->execute([strtolower(getenv("EMAIL"))]); echo $s->rowCount()," compte(s) modifié(s)\n";'
+unset NEWPW
+```
+
 ## Dépannage
 
 - **L'application ne démarre pas, la base est « unhealthy »** : mot de passe différent entre `DB_PASS` et `MARIADB_PASSWORD`. S'il a été modifié après le premier démarrage, la base garde l'ancien : supprimez le volume `kitcho_db` (⚠ efface les données) ou changez le mot de passe côté MariaDB.
