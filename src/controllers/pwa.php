@@ -64,7 +64,7 @@ const STATIC = 'kitcho-static-' + CFG.version;
 const PAGES = 'kitcho-pages';
 const MAX_PAGES = 60;
 const NEVER_CACHE = ['/login', '/register', '/logout', '/join/', '/s/', '/offline'];
-const BYPASS = ['/shopping/state', '/recipes/export', '/sw.js', '/manifest.webmanifest'];
+const BYPASS = ['/shopping/state', '/recipes/export', '/sw.js', '/manifest.webmanifest', '/version'];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(caches.open(STATIC).then((c) => c.addAll(CFG.precache)).then(() => self.skipWaiting()));
@@ -137,5 +137,16 @@ function pwa_offline(): void
 {
     header('Cache-Control: no-cache');
     render('offline', ['title' => 'Hors connexion'], false);
+    exit;
+}
+
+/** Version déployée, pour vérifier que le NAS et le dépôt sont alignés (voir bin/check_deploy.sh). */
+function app_version_json(): void
+{
+    $v = app_version();
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    header('X-Robots-Tag: noindex');
+    echo json_encode(['app' => config('app.name', 'Kitcho'), 'sha' => $v['sha'], 'short' => $v['short'], 'built' => $v['date']], JSON_UNESCAPED_UNICODE);
     exit;
 }

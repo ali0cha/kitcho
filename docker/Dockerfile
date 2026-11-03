@@ -15,6 +15,10 @@ RUN a2enconf menu
 
 COPY . /var/www/html/
 COPY docker/entrypoint.sh /usr/local/bin/kitcho-entrypoint
+# Version construite : commit Git et date, lus par l'appli (/version, page Profil) et par bin/check_deploy.sh.
+ARG GIT_SHA=dev
+ARG BUILD_DATE=
+RUN printf '%s\n%s\n' "$GIT_SHA" "$BUILD_DATE" > /var/www/html/VERSION
 # L'installeur web est inutile : la configuration vient des variables d'environnement.
 RUN rm -f /var/www/html/install.php /var/www/html/config.php \
     && chmod +x /usr/local/bin/kitcho-entrypoint \

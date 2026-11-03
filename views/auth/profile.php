@@ -54,3 +54,8 @@
     </ul>
     <p><a class="k-btn k-btn--ghost" href="<?= e(url('/households')) ?>">Gérer mes foyers</a></p>
 </section>
+<section class="k-card k-card--pad">
+    <h2>À propos</h2>
+    <?php $ver = app_version(); ?>
+    <p class="k-muted"><?= e(config('app.name', 'Kitcho')) ?> · version <b class="k-num"><?= e($ver['short']) ?></b><?= $ver['date'] ? ' · construite le ' . e(date('d/m/Y H:i', strtotime($ver['date']))) : '' ?></p>
+</section>

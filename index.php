@@ -12,6 +12,7 @@ $routes = [
     ['GET',      '#^/manifest\.webmanifest$#',   'pwa_manifest'],
     ['GET',      '#^/sw\.js$#',                  'pwa_sw'],
     ['GET',      '#^/offline$#',                  'pwa_offline'],
+    ['GET',      '#^/version$#',                  'app_version_json'],
     ['GET|POST', '#^/login$#',                    'auth_login'],
     ['GET|POST', '#^/register$#',                 'auth_register'],
     ['POST',     '#^/logout$#',                   'auth_logout'],

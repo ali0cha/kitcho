@@ -22,9 +22,23 @@ Il n'y a rien à compiler sur le NAS : l'image est construite par GitHub et réc
 
 Les données (comptes, recettes, menus) sont dans le volume Docker `kitcho_db` de l'application. Variante : un dossier de dataset (ligne commentée dans le YAML) ; il doit appartenir à l'UID/GID 999, sinon MariaDB ne démarre pas.
 
-## 3. Mettre à jour
+## 3. Mettre à jour (et rester à la version du dépôt)
 
-Publiez une nouvelle version (`git tag v1.0.1 && git push --tags`), attendez la fin du workflow GitHub, puis dans TrueNAS : *Apps → kitcho → Edit*, changez le numéro de version de l'image, *Save*. Les tables sont mises à jour au redémarrage ; les données sont conservées.
+Chaque `git push` sur `main` déclenche le workflow « Image Docker », qui publie l'image `latest` portant le numéro du commit. Le YAML fourni contient `pull_policy: always` : **à chaque *Apps → kitcho → Edit → Save*, TrueNAS télécharge la dernière image** puis recrée le conteneur si elle a changé (la base n'est pas touchée, les tables sont mises à jour au démarrage).
+
+Marche à suivre après un `git push` :
+
+1. Attendez que le workflow soit vert (onglet *Actions* du dépôt, quelques minutes).
+2. TrueNAS → *Apps → kitcho → Edit* → *Save*.
+3. Vérifiez que tout est aligné, depuis une copie du dépôt :
+
+```bash
+bin/check_deploy.sh                # ou : bin/check_deploy.sh https://autre-adresse
+```
+
+Le script compare quatre versions (dépôt local, GitHub, image publiée, application en ligne) et dit précisément quoi faire en cas d'écart. La version déployée est aussi visible dans l'appli : *Profil → À propos*, ou `https://kitcho.aliocha.xyz/version`.
+
+Si vous préférez des mises à jour contrôlées, épinglez une version (`image: ghcr.io/ali0cha/kitcho:1.0.1` après `git tag v1.0.1 && git push --tags`), retirez `pull_policy` et changez le numéro pour mettre à jour. Sans le suivi de version (anciennes images), `/version` n'existe pas : le script le signale.
 
 ## 4. Reprendre vos recettes d'une autre installation
 

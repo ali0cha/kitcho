@@ -262,3 +262,19 @@ function hero(string $tagline = 'Planifiez vos repas, partagez vos courses.'): s
     return '<div class="k-hero k-gingham"><span class="k-logo k-logo--xl">' . icon('pot', 'xl', 'k-logo__mark')
         . '<span>' . e(config('app.name', 'Kitcho')) . '</span></span><p class="k-muted">' . e($tagline) . '</p></div>';
 }
+
+/** Version construite (fichier VERSION écrit au build) : commit Git complet, court, date. « dev » hors image. */
+function app_version(): array
+{
+    static $v = null;
+    if ($v === null) {
+        $lines = is_file(ROOT . '/VERSION') ? array_map('trim', file(ROOT . '/VERSION')) : [];
+        $sha = preg_match('/^[0-9a-f]{40}$/', $lines[0] ?? '') ? $lines[0] : null;
+        $v = [
+            'sha'   => $sha,
+            'short' => $sha ? substr($sha, 0, 7) : (($lines[0] ?? '') ?: 'dev'),
+            'date'  => ($lines[1] ?? '') !== '' ? $lines[1] : null,
+        ];
+    }
+    return $v;
+}

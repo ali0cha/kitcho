@@ -4,6 +4,9 @@
 services:
   kitcho:
     image: ghcr.io/ali0cha/kitcho:latest
+    # Télécharge la dernière image à chaque « Edit → Save » : le NAS reste à la version du dépôt.
+    # (à retirer si vous épinglez une version précise, ex. :1.0.0)
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       db:

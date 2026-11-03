@@ -74,7 +74,7 @@ if (PHP_SAPI !== 'cli') {
         'samesite' => 'Lax',
     ]);
     // Le manifeste, le service worker et le flux ICS n'ont pas besoin de session (et ne doivent pas poser de cookie).
-    if (!preg_match('#/(sw\.js|manifest\.webmanifest|cal/[0-9a-f]{40}\.ics)$#', (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH))) {
+    if (!preg_match('#/(sw\.js|manifest\.webmanifest|version|cal/[0-9a-f]{40}\.ics)$#', (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH))) {
         session_start();
     }
     if ($https) {

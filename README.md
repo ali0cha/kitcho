@@ -88,6 +88,10 @@ Sans SSH : sur la page *Recettes*, « Importer une liste de plats » accepte un 
 
 Les recettes importées n'ont **pas d'ingrédients** (votre Excel n'en contient pas) : elles sont utilisables dans le calendrier et la génération, mais n'alimentent la liste de courses qu'une fois leurs ingrédients saisis (un ⚠ le signale dans la semaine et la page Courses).
 
+## Version déployée
+
+L'image Docker embarque le commit Git qui l'a construite (fichier `VERSION`, écrit par le workflow GitHub). Elle s'affiche dans *Profil → À propos* et sur `/version`. `bin/check_deploy.sh` compare le dépôt, GitHub, l'image publiée et l'application en ligne ; en local, `GIT_SHA=$(git rev-parse HEAD) docker compose up -d --build` renseigne aussi la version.
+
 ## Structure
 
 ```
