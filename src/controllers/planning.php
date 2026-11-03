@@ -78,7 +78,10 @@ function planning_calendar(): void
     foreach ($rows as $m) {
         $byDate[$m['meal_date']][] = $m;
     }
+    $f = db_one('SELECT token FROM calendar_feeds WHERE household_id = ?', [$hid]);
+    $feedUrl = $f ? abs_url('/cal/' . $f['token'] . '.ics') : null;
     render('planning/calendar', [
+        'feed' => $feedUrl ? ['link' => $feedUrl, 'webcal' => preg_replace('#^https?://#', 'webcal://', $feedUrl)] : null,
         'title' => ucfirst(month_name($first)) . ' ' . $first->format('Y'),
         'first' => $first, 'gridStart' => $gridStart, 'gridEnd' => $gridEnd, 'byDate' => $byDate,
         'prev' => $first->modify('-1 month')->format('Y-m'), 'next' => $first->modify('+1 month')->format('Y-m'),
@@ -245,4 +248,65 @@ function week_clear(): void
     db_run('DELETE FROM shopping_checks WHERE household_id = ? AND week_start = ?', [$hh['id'], ymd($monday)]);
     flash('success', 'Semaine vidée.');
     redirect_week($monday);
+}
+
+// ---------------------------------------------------------------- abonnement au calendrier (flux ICS)
+
+/** Flux ICS public, protégé par un jeton secret dans l'adresse (les applications de calendrier ne peuvent pas se connecter). */
+function calendar_feed_ics(string $token): void
+{
+    $hh = db_one('SELECT h.* FROM calendar_feeds f JOIN households h ON h.id = f.household_id WHERE f.token = ?', [$token]);
+    if (!$hh) {
+        http_response_code(404);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo "Lien d'abonnement inconnu ou désactivé.\n";
+        exit;
+    }
+    $body = build_calendar_feed($hh);
+    $etag = '"' . sha1($body) . '"';
+    header('Content-Type: text/calendar; charset=utf-8');
+    header('Content-Disposition: inline; filename="kitcho.ics"');
+    header('Cache-Control: private, max-age=0, must-revalidate');
+    header('ETag: ' . $etag);
+    header('X-Robots-Tag: noindex, nofollow');
+    if (($_SERVER['HTTP_IF_NONE_MATCH'] ?? '') === $etag) {
+        http_response_code(304);
+        exit;
+    }
+    echo $body;
+    exit;
+}
+
+function feed_back(): never
+{
+    $m = input_str('m');
+    $query = ['abo' => 1];
+    if (parse_date($m . '-01')) {
+        $query['m'] = $m;
+    }
+    header('Location: ' . url('/calendar', $query) . '#abonnement');
+    exit;
+}
+
+/** Crée le lien d'abonnement du foyer, ou en génère un nouveau (l'ancien cesse de fonctionner). */
+function calendar_feed_create(): void
+{
+    $hh = require_household();
+    require_post();
+    db_run(
+        'INSERT INTO calendar_feeds (household_id, token, created_by) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE token = VALUES(token), created_by = VALUES(created_by), created_at = NOW()',
+        [$hh['id'], new_token(), current_user()['id']]
+    );
+    flash('success', "Lien d'abonnement prêt. Si vous en aviez déjà un, l'ancien ne fonctionne plus : réabonnez vos calendriers avec le nouveau.");
+    feed_back();
+}
+
+function calendar_feed_revoke(): void
+{
+    $hh = require_household();
+    require_post();
+    db_run('DELETE FROM calendar_feeds WHERE household_id = ?', [$hh['id']]);
+    flash('success', "Abonnement désactivé : les calendriers déjà abonnés ne recevront plus de mises à jour.");
+    feed_back();
 }

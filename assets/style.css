@@ -88,8 +88,9 @@ body { margin: 0; min-height: 100vh; }
 
 /* ---------- Application installée (plein écran) ---------- */
 .back-link { margin: 0 0 8px -8px; }
-.pwa-steps { margin: 8px 0 0; padding-left: 20px; }
-.pwa-steps li { margin: 4px 0; }
+.pwa-steps { list-style: disc; margin: 8px 0 0; padding-left: 20px; font-size: 14px; color: var(--muted); }
+.pwa-steps li { margin: 6px 0; }
+.pwa-steps b { color: var(--text); }
 @media (display-mode: fullscreen), (display-mode: standalone) {
     body.k-app { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
     input, textarea, .copy-input, .pre { -webkit-user-select: text; user-select: text; }
@@ -186,6 +187,7 @@ a.k-meal__name:hover { text-decoration: underline; }
 .cal-legend { display: flex; gap: 18px; margin: 12px 0; }
 .cal-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .cal-detail { margin-top: 16px; }
+.sub-panel { margin-top: 20px; }
 .cal-detail .list-rows { margin-bottom: 16px; }
 @media (max-width: 700px) {
     .cal { gap: 4px; }

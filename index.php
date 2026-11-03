@@ -42,6 +42,9 @@ $routes = [
 
     ['GET',  '#^/week$#',                         'planning_week'],
     ['GET',  '#^/calendar$#',                     'planning_calendar'],
+    ['GET|HEAD', '#^/cal/([0-9a-f]{40})\.ics$#',  'calendar_feed_ics'],
+    ['POST', '#^/calendar/feed/create$#',         'calendar_feed_create'],
+    ['POST', '#^/calendar/feed/revoke$#',         'calendar_feed_revoke'],
     ['POST', '#^/meals/add$#',                    'meals_add'],
     ['POST', '#^/meals/(\d+)/update$#',           'meals_update'],
     ['POST', '#^/meals/(\d+)/delete$#',           'meals_delete'],

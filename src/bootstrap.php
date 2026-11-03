@@ -45,6 +45,7 @@ require SRC . '/dates.php';
 require SRC . '/auth.php';
 require SRC . '/ingredients.php';
 require SRC . '/planner.php';
+require SRC . '/ics.php';
 
 set_exception_handler(function (Throwable $e): void {
     error_log((string) $e);
@@ -72,8 +73,8 @@ if (PHP_SAPI !== 'cli') {
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
-    // Le manifeste et le service worker n'ont pas besoin de session (et ne doivent pas poser de cookie).
-    if (!preg_match('#/(sw\.js|manifest\.webmanifest)$#', (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH))) {
+    // Le manifeste, le service worker et le flux ICS n'ont pas besoin de session (et ne doivent pas poser de cookie).
+    if (!preg_match('#/(sw\.js|manifest\.webmanifest|cal/[0-9a-f]{40}\.ics)$#', (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH))) {
         session_start();
     }
     if ($https) {

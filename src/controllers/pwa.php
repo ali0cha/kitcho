@@ -98,7 +98,7 @@ self.addEventListener('fetch', (event) => {
         })));
         return;
     }
-    if (BYPASS.includes(rel)) return;
+    if (BYPASS.includes(rel) || rel.startsWith('/cal/')) return;
     if (req.mode === 'navigate') event.respondWith(pageStrategy(req, rel));
 });
 

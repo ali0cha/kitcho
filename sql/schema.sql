@@ -149,3 +149,17 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     PRIMARY KEY (id),
     KEY idx_la (ip, email, attempted_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Abonnement au calendrier (flux ICS) : un lien secret par foyer, utilisable sans connexion.
+CREATE TABLE IF NOT EXISTS calendar_feeds (
+    id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    household_id INT UNSIGNED NOT NULL,
+    token        CHAR(40) NOT NULL,
+    created_by   INT UNSIGNED NULL,
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_feed_household (household_id),
+    UNIQUE KEY uq_feed_token (token),
+    CONSTRAINT fk_feed_hh      FOREIGN KEY (household_id) REFERENCES households (id) ON DELETE CASCADE,
+    CONSTRAINT fk_feed_creator FOREIGN KEY (created_by)   REFERENCES users (id)      ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
