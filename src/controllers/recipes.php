@@ -155,3 +155,140 @@ function recipes_import(): void
     flash('success', "$added " . plural($added, 'recette ajoutée', 'recettes ajoutées') . ($skipped ? " ($skipped déjà " . plural($skipped, 'présente', 'présentes') . ')' : '') . '.');
     redirect('/recipes');
 }
+
+// ---------------------------------------------------------------- export / import de fichier
+
+/** Télécharge toutes les recettes du foyer (avec leurs ingrédients) au format JSON. */
+function recipes_export(): void
+{
+    $hh = require_household();
+    $hid = (int) $hh['id'];
+    $recipes = db_all('SELECT id, name, category, url, notes, servings, favorite, auto_ok FROM recipes WHERE household_id = ? ORDER BY name', [$hid]);
+    $byRecipe = [];
+    foreach (db_all(
+        'SELECT i.recipe_id, i.name, i.quantity, i.unit, i.aisle FROM recipe_ingredients i
+           JOIN recipes r ON r.id = i.recipe_id WHERE r.household_id = ? ORDER BY i.recipe_id, i.position',
+        [$hid]
+    ) as $i) {
+        $byRecipe[$i['recipe_id']][] = [
+            'name' => $i['name'], 'quantity' => $i['quantity'] !== null ? (float) $i['quantity'] : null,
+            'unit' => $i['unit'], 'aisle' => $i['aisle'],
+        ];
+    }
+    $out = [];
+    foreach ($recipes as $r) {
+        $out[] = [
+            'name' => $r['name'], 'category' => $r['category'], 'url' => $r['url'], 'notes' => $r['notes'],
+            'servings' => (int) $r['servings'], 'favorite' => (bool) $r['favorite'], 'auto_ok' => (bool) $r['auto_ok'],
+            'ingredients' => $byRecipe[$r['id']] ?? [],
+        ];
+    }
+    $file = 'kitcho-recettes-' . date('Y-m-d') . '.json';
+    header('Content-Type: application/json; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $file . '"');
+    header('Cache-Control: no-store');
+    echo json_encode(
+        ['app' => 'kitcho', 'version' => 1, 'exported_at' => date('c'), 'recipes' => $out],
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT
+    );
+    exit;
+}
+
+/** Insère des ingrédients déjà structurés (quantité, unité, rayon) ; retourne leur nombre. */
+function insert_ingredients(int $recipeId, array $ingredients): int
+{
+    $n = 0;
+    foreach ($ingredients as $ing) {
+        if (!is_array($ing) || !is_string($ing['name'] ?? null) || trim($ing['name']) === '') {
+            continue;
+        }
+        $name = mb_substr(trim($ing['name']), 0, 150);
+        $qty = isset($ing['quantity']) && is_numeric($ing['quantity']) && $ing['quantity'] >= 0 && $ing['quantity'] < 1000000 ? round((float) $ing['quantity'], 2) : null;
+        $unit = is_string($ing['unit'] ?? null) && trim($ing['unit']) !== '' ? mb_substr(trim($ing['unit']), 0, 30) : null;
+        $aisle = in_array($ing['aisle'] ?? null, AISLES, true) ? $ing['aisle'] : guess_aisle($name);
+        db_insert('recipe_ingredients', [
+            'recipe_id' => $recipeId, 'name' => $name, 'quantity' => $qty, 'unit' => $unit, 'aisle' => $aisle, 'position' => $n,
+        ]);
+        $n++;
+    }
+    return $n;
+}
+
+/**
+ * Importe un fichier d'export Kitcho. Les recettes déjà présentes (même nom) sont conservées telles quelles ;
+ * si l'une d'elles n'a aucun ingrédient et que le fichier en fournit, ils lui sont ajoutés.
+ */
+function recipes_import_file(): void
+{
+    $hh = require_household();
+    require_post();
+    $f = $_FILES['file'] ?? null;
+    if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || $f['size'] > 2 * 1024 * 1024) {
+        flash('error', 'Choisissez un fichier d\'export JSON (2 Mo maximum).');
+        redirect('/recipes');
+    }
+    $data = json_decode((string) file_get_contents($f['tmp_name']), true);
+    $list = is_array($data) ? ($data['recipes'] ?? $data) : null;
+    if (!is_array($list) || !array_is_list($list) || count($list) > 5000) {
+        flash('error', 'Fichier non reconnu : utilisez un export produit par Kitcho (bouton « Exporter mes recettes »).');
+        redirect('/recipes');
+    }
+
+    $hid = (int) $hh['id'];
+    $existing = [];
+    foreach (db_all(
+        'SELECT r.id, r.name, (SELECT COUNT(*) FROM recipe_ingredients i WHERE i.recipe_id = r.id) AS n FROM recipes r WHERE r.household_id = ?',
+        [$hid]
+    ) as $r) {
+        $existing[norm_key($r['name'])] = ['id' => (int) $r['id'], 'n' => (int) $r['n']];
+    }
+
+    $added = $completed = $skipped = $ingredients = 0;
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        foreach ($list as $r) {
+            if (!is_array($r) || !is_string($r['name'] ?? null) || trim($r['name']) === '') {
+                continue;
+            }
+            $name = mb_substr(trim($r['name']), 0, 200);
+            $key = norm_key($name);
+            $ings = is_array($r['ingredients'] ?? null) ? $r['ingredients'] : [];
+            if (isset($existing[$key])) {
+                if ($existing[$key]['n'] === 0 && $ings && ($n = insert_ingredients($existing[$key]['id'], $ings)) > 0) {
+                    $existing[$key]['n'] = $n;
+                    $ingredients += $n;
+                    $completed++;
+                } else {
+                    $skipped++;
+                }
+                continue;
+            }
+            $cat = $r['category'] ?? '';
+            $id = db_insert('recipes', [
+                'household_id' => $hid,
+                'name'         => $name,
+                'category'     => is_string($cat) && isset(CATEGORIES[$cat]) ? $cat : guess_category($name),
+                'url'          => is_string($r['url'] ?? null) ? mb_substr((string) safe_url($r['url']), 0, 500) ?: null : null,
+                'notes'        => is_string($r['notes'] ?? null) && trim($r['notes']) !== '' ? mb_substr($r['notes'], 0, 5000) : null,
+                'servings'     => max(1, min(30, (int) ($r['servings'] ?? $hh['default_servings']))),
+                'favorite'     => !empty($r['favorite']) ? 1 : 0,
+                'auto_ok'      => !array_key_exists('auto_ok', $r) || !empty($r['auto_ok']) ? 1 : 0,
+                'created_by'   => current_user()['id'],
+            ]);
+            $existing[$key] = ['id' => $id, 'n' => 0];
+            $existing[$key]['n'] = insert_ingredients($id, $ings);
+            $ingredients += $existing[$key]['n'];
+            $added++;
+        }
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+    flash('success', "Import terminé : $added " . plural($added, 'recette ajoutée', 'recettes ajoutées')
+        . ($completed ? ", $completed " . plural($completed, 'complétée', 'complétées') . ' avec leurs ingrédients' : '')
+        . ", $ingredients " . plural($ingredients, 'ingrédient', 'ingrédients')
+        . ($skipped ? ", $skipped déjà " . plural($skipped, 'présente', 'présentes') . ' (inchangée' . ($skipped > 1 ? 's' : '') . ')' : '') . '.');
+    redirect('/recipes');
+}

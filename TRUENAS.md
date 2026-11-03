@@ -26,9 +26,18 @@ Les données (comptes, recettes, menus) sont dans le volume Docker `kitcho_db` d
 
 Publiez une nouvelle version (`git tag v1.0.1 && git push --tags`), attendez la fin du workflow GitHub, puis dans TrueNAS : *Apps → kitcho → Edit*, changez le numéro de version de l'image, *Save*. Les tables sont mises à jour au redémarrage ; les données sont conservées.
 
-## 4. Récupérer vos données d'une installation existante
+## 4. Reprendre vos recettes d'une autre installation
 
-Depuis la machine où tourne l'ancienne installation (dossier du projet) :
+**Recettes et ingrédients (recommandé)** — depuis la page *Recettes* :
+
+1. Sur l'ancienne installation : *Exporter / importer un fichier* → **Exporter mes recettes**. Un fichier `kitcho-recettes-AAAA-MM-JJ.json` est téléchargé (recettes, catégories, liens, notes, favoris, portions et ingrédients).
+2. Sur Kitcho (TrueNAS), connecté à votre compte : même endroit → choisissez le fichier → **Importer**.
+
+L'import ne modifie jamais une recette déjà présente (même nom, accents et majuscules ignorés) ; si elle n'a aucun ingrédient et que le fichier en fournit, ils lui sont ajoutés. On peut donc relancer l'import sans risque. Les comptes, foyers et menus planifiés ne sont pas transférés : créez votre compte sur le NAS et invitez les autres membres avec un lien.
+
+Les deux installations doivent avoir la fonction d'export/import : mettez à jour l'image des deux côtés si besoin.
+
+**Tout reprendre (comptes, foyers, menus…)** — export SQL complet. Attention : il remplace le contenu de la base du NAS. Depuis la machine de l'ancienne installation (dossier du projet) :
 
 ```bash
 docker compose exec -T db sh -c 'mariadb-dump -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" "$MARIADB_DATABASE"' > kitcho.sql

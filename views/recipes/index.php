@@ -59,3 +59,16 @@
         <button class="btn">Importer</button>
     </form>
 </details>
+
+<details class="card">
+    <summary><strong>Exporter / importer un fichier</strong></summary>
+    <p class="muted small">Pour transférer vos recettes <em>avec leurs ingrédients</em> vers une autre installation de Kitcho (sauvegarde, nouveau serveur…). À l'import, les recettes déjà présentes (même nom) ne sont pas modifiées ; si l'une n'a aucun ingrédient, ceux du fichier lui sont ajoutés.</p>
+    <p><a class="btn" href="<?= e(url('/recipes/export')) ?>" download>⬇ Exporter mes recettes</a></p>
+    <form method="post" action="<?= e(url('/recipes/import-file')) ?>" enctype="multipart/form-data" class="row-form">
+        <?= csrf_field() ?>
+        <label class="grow">Fichier d'export (.json)
+            <input type="file" name="file" accept=".json,application/json" required>
+        </label>
+        <button class="btn btn-primary">Importer</button>
+    </form>
+</details>
