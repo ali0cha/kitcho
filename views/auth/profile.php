@@ -1,32 +1,33 @@
-<h1>Mon profil</h1>
+<h1 class="page-title">Mon profil</h1>
 <div class="grid-2">
-    <section class="card">
+    <section class="k-card k-card--pad">
         <h2>Informations</h2>
         <form method="post" class="stack">
             <?= csrf_field() ?><input type="hidden" name="action" value="name">
-            <label>E-mail <input value="<?= e($profile['email']) ?>" disabled></label>
-            <label>Nom <input name="name" value="<?= e($profile['name']) ?>" required maxlength="100"></label>
-            <button class="btn">Enregistrer</button>
+            <div class="k-field"><label class="k-label" for="p-email">E-mail</label><input class="k-input" id="p-email" value="<?= e($profile['email']) ?>" disabled></div>
+            <div class="k-field"><label class="k-label" for="p-name">Nom</label><input class="k-input" id="p-name" name="name" value="<?= e($profile['name']) ?>" required maxlength="100"></div>
+            <button class="k-btn k-btn--secondary">Enregistrer</button>
         </form>
     </section>
-    <section class="card">
+    <section class="k-card k-card--pad">
         <h2>Mot de passe</h2>
         <form method="post" class="stack">
             <?= csrf_field() ?><input type="hidden" name="action" value="password">
-            <label>Mot de passe actuel <input type="password" name="current_password" required autocomplete="current-password"></label>
-            <label>Nouveau mot de passe <input type="password" name="new_password" required minlength="8" autocomplete="new-password"></label>
-            <label>Confirmer <input type="password" name="new_password2" required minlength="8" autocomplete="new-password"></label>
-            <button class="btn">Changer le mot de passe</button>
+            <div class="k-field"><label class="k-label" for="p-cur">Mot de passe actuel</label><input class="k-input" id="p-cur" type="password" name="current_password" required autocomplete="current-password"></div>
+            <div class="k-field"><label class="k-label" for="p-new">Nouveau mot de passe</label><input class="k-input" id="p-new" type="password" name="new_password" required minlength="8" autocomplete="new-password"></div>
+            <div class="k-field"><label class="k-label" for="p-new2">Confirmer</label><input class="k-input" id="p-new2" type="password" name="new_password2" required minlength="8" autocomplete="new-password"></div>
+            <button class="k-btn k-btn--secondary">Changer le mot de passe</button>
         </form>
     </section>
 </div>
-<section class="card">
+<section class="k-card k-card--pad">
     <h2>Mes foyers</h2>
-    <ul class="plain">
+    <ul class="plain list-rows">
         <?php foreach ($households as $h): ?>
-            <li><?= e($h['name']) ?> <span class="badge"><?= $h['role'] === 'owner' ? 'administrateur' : 'membre' ?></span>
-                <span class="muted small">· <?= (int) $h['members'] ?> <?= plural((int) $h['members'], 'membre', 'membres') ?></span></li>
+            <li><span><b><?= e($h['name']) ?></b>
+                <span class="k-meta">· <?= (int) $h['members'] ?> <?= plural((int) $h['members'], 'membre', 'membres') ?></span></span>
+                <span class="k-badge <?= $h['role'] === 'owner' ? 'k-badge--admin' : 'k-badge--member' ?>"><?= $h['role'] === 'owner' ? 'administrateur' : 'membre' ?></span></li>
         <?php endforeach; ?>
     </ul>
-    <p><a href="<?= e(url('/households')) ?>">Gérer mes foyers</a></p>
+    <p><a class="k-btn k-btn--ghost" href="<?= e(url('/households')) ?>">Gérer mes foyers</a></p>
 </section>

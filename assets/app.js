@@ -1,6 +1,13 @@
 (function () {
     'use strict';
 
+    function load(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v === null ? d : v; } catch (e) { return d; } }
+    function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* ignore */ } }
+    function $(sel, root) { return (root || document).querySelector(sel); }
+    function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+    // ------------------------------------------------------------------ général
+
     // Confirmation avant action destructrice : <form data-confirm="…">
     document.addEventListener('submit', function (e) {
         var msg = e.target.getAttribute && e.target.getAttribute('data-confirm');
@@ -19,9 +26,9 @@
     function copy(text, btn) {
         var done = function () {
             if (!btn) return;
-            var old = btn.textContent;
+            var old = btn.innerHTML;
             btn.textContent = 'Copié ✓';
-            setTimeout(function () { btn.textContent = old; }, 1500);
+            setTimeout(function () { btn.innerHTML = old; }, 1500);
         };
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(text).then(done);
@@ -45,19 +52,21 @@
         if (e.target.classList && e.target.classList.contains('copy-input')) {
             e.target.select();
         }
+        // Referme le menu « ⋯ » quand on clique ailleurs.
+        $$('details.more[open]').forEach(function (d) { if (!d.contains(e.target)) d.removeAttribute('open'); });
     });
 
     // ------------------------------------------------------------------ recettes : filtrage pendant la frappe
-    var filterForm = document.querySelector('[data-live-filter]');
+
+    var filterForm = $('[data-live-filter]');
     if (filterForm) {
-        var input = filterForm.querySelector('[data-filter-input]');
-        var catSel = filterForm.querySelector('[data-filter-cat]');
-        var rows = Array.prototype.slice.call(document.querySelectorAll('[data-filter-row]'));
-        var countEl = document.querySelector('[data-filter-count]');
-        var emptyEl = document.querySelector('[data-filter-empty]');
-        var submitBtn = filterForm.querySelector('[data-filter-submit]');
+        var input = $('[data-filter-input]', filterForm);
+        var catSel = $('[data-filter-cat]', filterForm);
+        var rows = $$('[data-filter-row]');
+        var countEl = $('[data-filter-count]');
+        var emptyEl = $('[data-filter-empty]');
         var fold = function (s) {
-            return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+            return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
         };
         var applyFilter = function () {
             var words = fold(input.value).split(' ').filter(Boolean);
@@ -71,7 +80,7 @@
             });
             if (countEl) {
                 var total = countEl.getAttribute('data-total');
-                countEl.textContent = (words.length || cat) ? '(' + shown + ' / ' + total + ')' : '(' + total + ')';
+                countEl.textContent = (words.length || cat) ? shown + ' / ' + total : total;
             }
             if (emptyEl) emptyEl.hidden = shown > 0 || !rows.length;
             if (window.history && history.replaceState) {
@@ -84,68 +93,78 @@
         if (rows.length) {
             input.addEventListener('input', applyFilter);
             catSel.addEventListener('change', applyFilter);
-            // Plus besoin d'envoyer le formulaire pour filtrer ; Entrée ne recharge pas la page.
             filterForm.addEventListener('submit', function (e) { e.preventDefault(); });
-            if (submitBtn) submitBtn.hidden = true;
             applyFilter();
         }
     }
 
+    // ------------------------------------------------------------------ calendrier : détail du jour sur mobile
+
+    var cal = $('[data-cal]');
+    if (cal) {
+        var narrow = window.matchMedia('(max-width: 700px)');
+        var selectDay = function (date) {
+            $$('.cal-day', cal).forEach(function (a) { a.classList.toggle('is-selected', a.getAttribute('data-date') === date); });
+            $$('[data-cal-detail]').forEach(function (el) { el.hidden = el.getAttribute('data-cal-detail') !== date; });
+        };
+        cal.addEventListener('click', function (e) {
+            var a = e.target.closest('.cal-day');
+            if (!a || !narrow.matches) return;
+            e.preventDefault();
+            selectDay(a.getAttribute('data-date'));
+        });
+        var start = $('.cal-day.is-today', cal) || $('.cal-day:not(.is-outside)', cal);
+        if (start) selectDay(start.getAttribute('data-date'));
+    }
+
     // ------------------------------------------------------------------ liste de courses
-    var shop = document.querySelector('.shop');
+
+    var shop = $('.shop');
     if (!shop) return;
 
     var week = shop.getAttribute('data-week');
     var csrf = document.body.getAttribute('data-csrf');
-    var storeKey = 'menu-pending-' + week;
-    var pending = {};   // clé article -> état voulu ('1' / '0'), en attente d'envoi
+    var storeKey = 'kitcho-pending-' + week;
+    var pending = load(storeKey, {});   // clé article -> état voulu ('1' / '0'), en attente d'envoi
     var syncing = false;
 
-    function load(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } }
-    function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* ignore */ } }
-    pending = load(storeKey, {});
-
     var el = {
-        done: shop.querySelector('[data-done]'),
-        total: shop.querySelector('[data-total]'),
-        fill: shop.querySelector('[data-progress-fill]'),
-        offline: shop.querySelector('[data-offline]'),
-        changed: shop.querySelector('[data-changed]'),
-        allDone: shop.querySelector('[data-alldone]')
+        done: $('[data-done]', shop),
+        total: $('[data-total]', shop),
+        fill: $('[data-progress-fill]', shop),
+        offline: $('[data-offline]', shop),
+        changed: $('[data-changed]', shop),
+        allDone: $('[data-alldone]', shop)
     };
 
-    function rowOf(key) { return shop.querySelector('li[data-key="' + key + '"]'); }
-
-    // Applique un état à une ligne, sans passer par le réseau.
-    function paint(li, checked) {
-        var form = li.querySelector('.toggle');
-        li.classList.toggle('done', checked);
-        form.querySelector('.box').textContent = checked ? '✓' : '';
-        form.querySelector('.row-btn').setAttribute('aria-pressed', checked ? 'true' : 'false');
-        form.querySelector('[name=checked]').value = checked ? '0' : '1';
-    }
+    function allRows() { return $$('.k-row[data-key]', shop); }
+    function rowOf(key) { return $('.k-row[data-key="' + key + '"]', shop); }
+    function inputOf(row) { return $('.k-row__input', row); }
+    function aisleOf(row) { return row.closest('[data-aisle]'); }
 
     // Non cochés d'abord (ordre alphabétique conservé), cochés en bas du rayon.
     function sortAisle(aisle) {
-        var ul = aisle.querySelector('.checklist');
-        var items = Array.prototype.slice.call(ul.children);
-        items.sort(function (a, b) {
-            var da = a.classList.contains('done') ? 1 : 0, db = b.classList.contains('done') ? 1 : 0;
+        var body = $('.k-aisle__body', aisle);
+        var rows = $$('.k-row', body);
+        rows.sort(function (a, b) {
+            var da = inputOf(a).checked ? 1 : 0, db = inputOf(b).checked ? 1 : 0;
             if (da !== db) return da - db;
             return a.getAttribute('data-name') < b.getAttribute('data-name') ? -1 : 1;
         });
-        items.forEach(function (li) { ul.appendChild(li); });
+        rows.forEach(function (r) { body.appendChild(r); });
     }
 
     function recount() {
         var done = 0, total = 0;
-        shop.querySelectorAll('[data-aisle]').forEach(function (aisle) {
-            var lis = aisle.querySelectorAll('.checklist li');
-            var d = aisle.querySelectorAll('.checklist li.done').length;
-            aisle.querySelector('[data-aisle-done]').textContent = d;
-            aisle.querySelector('[data-aisle-total]').textContent = lis.length;
-            aisle.classList.toggle('complete', lis.length > 0 && d === lis.length);
-            done += d; total += lis.length;
+        $$('[data-aisle]', shop).forEach(function (aisle) {
+            var rows = $$('.k-row', aisle);
+            var d = rows.filter(function (r) { return inputOf(r).checked; }).length;
+            $('[data-aisle-done]', aisle).textContent = d;
+            $('[data-aisle-total]', aisle).textContent = rows.length;
+            var full = rows.length > 0 && d === rows.length;
+            aisle.classList.toggle('is-done', full);
+            $('.k-count', aisle).classList.toggle('k-count--done', full);
+            done += d; total += rows.length;
         });
         el.done.textContent = done;
         el.total.textContent = total;
@@ -159,7 +178,7 @@
 
     function send(key, value) {
         var body = new URLSearchParams({ _csrf: csrf, d: week, key: key, checked: value });
-        return fetch(shop.querySelector('.toggle').action, {
+        return fetch(shop.getAttribute('data-toggle-url'), {
             method: 'POST', body: body, credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' }
         }).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r; });
     }
@@ -181,20 +200,57 @@
         });
     }
 
-    shop.addEventListener('submit', function (e) {
-        var form = e.target;
-        if (!form.classList.contains('toggle')) return;
-        e.preventDefault();
-        var li = form.closest('li');
-        var key = li.getAttribute('data-key');
-        var value = form.querySelector('[name=checked]').value;      // état voulu
-        paint(li, value === '1');
-        sortAisle(li.closest('[data-aisle]'));
+    var collapseTimers = new WeakMap();
+    shop.addEventListener('change', function (e) {
+        var input = e.target;
+        if (!input.classList.contains('k-row__input')) return;
+        var row = input.closest('.k-row');
+        var aisle = aisleOf(row);
+        var checked = input.checked;
+        sortAisle(aisle);
+        input.focus({ preventScroll: true });
         recount();
-        if (navigator.vibrate) navigator.vibrate(value === '1' ? 15 : 8);
-        pending[key] = value;
+        if (navigator.vibrate) navigator.vibrate(12);
+        pending[row.getAttribute('data-key')] = checked ? '1' : '0';
         save(storeKey, pending);
         flush();
+        // Rayon terminé : on le replie après un court instant (annulé si on décoche).
+        clearTimeout(collapseTimers.get(aisle));
+        if (checked && aisle.classList.contains('is-done') && !shop.classList.contains('store-mode')) {
+            collapseTimers.set(aisle, setTimeout(function () {
+                if (aisle.classList.contains('is-done')) setClosed(aisle, true);
+            }, 900));
+        }
+    });
+
+    function setClosed(aisle, closed) {
+        aisle.classList.toggle('is-closed', closed);
+        $('.k-aisle__head', aisle).setAttribute('aria-expanded', closed ? 'false' : 'true');
+    }
+
+    shop.addEventListener('click', function (e) {
+        var head = e.target.closest('.k-aisle__head');
+        if (head && !shop.classList.contains('store-mode')) {
+            var aisle = head.closest('[data-aisle]');
+            setClosed(aisle, !aisle.classList.contains('is-closed'));
+            return;
+        }
+        var del = e.target.closest('[data-extra-del]');
+        if (del) {
+            var row = del.closest('.k-row');
+            var name = $('.k-row__line', row).textContent.trim();
+            if (!window.confirm('Supprimer « ' + name + ' » de la liste ?')) return;
+            fetch(shop.getAttribute('data-extra-del-url'), {
+                method: 'POST', credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' },
+                body: new URLSearchParams({ _csrf: csrf, d: week, id: del.getAttribute('data-extra-del') })
+            }).then(function (r) {
+                if (!r.ok) throw new Error();
+                var aisle = aisleOf(row);
+                row.remove();
+                if (!$$('.k-row', aisle).length) aisle.remove(); else recount();
+                recount();
+            }).catch(function () { window.location.reload(); });
+        }
     });
 
     window.addEventListener('online', flush);
@@ -207,20 +263,22 @@
             .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
             .then(function (state) {
                 if (Object.keys(pending).length) return;
-                var known = shop.querySelectorAll('li[data-key]').length;
+                var known = allRows().length;
                 var serverKeys = Object.keys(state.items);
-                var touched = {};
+                var touched = [];
                 serverKeys.forEach(function (key) {
-                    var li = rowOf(key);
-                    if (!li) { if (el.changed) el.changed.hidden = false; return; }
-                    if (li.classList.contains('done') !== state.items[key]) {
-                        paint(li, state.items[key]);
-                        touched[li.closest('[data-aisle]').querySelector('h2').textContent] = li.closest('[data-aisle]');
+                    var row = rowOf(key);
+                    if (!row) { if (el.changed) el.changed.hidden = false; return; }
+                    var input = inputOf(row);
+                    if (input.checked !== state.items[key]) {
+                        input.checked = state.items[key];
+                        var a = aisleOf(row);
+                        if (touched.indexOf(a) === -1) touched.push(a);
                     }
                 });
                 if (serverKeys.length !== known && el.changed) el.changed.hidden = false;
-                Object.keys(touched).forEach(function (k) { sortAisle(touched[k]); });
-                if (Object.keys(touched).length) recount();
+                touched.forEach(sortAisle);
+                if (touched.length) recount();
                 setOffline(false);
             })
             .catch(function () { /* hors connexion : on réessaiera */ });
@@ -229,18 +287,17 @@
     document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); });
 
     // Masquer les articles cochés (préférence mémorisée).
-    var hideBtn = shop.querySelector('[data-toggle-done]');
+    var hideBtn = $('[data-toggle-done]', shop);
     function setHide(on) {
         shop.classList.toggle('hide-done', on);
         hideBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-        hideBtn.textContent = on ? 'Afficher les cochés' : 'Masquer les cochés';
-        save('menu-hide-done', on);
+        save('kitcho-hide-done', on);
     }
     hideBtn.addEventListener('click', function () { setHide(!shop.classList.contains('hide-done')); });
-    setHide(load('menu-hide-done', false) === true);
+    setHide(load('kitcho-hide-done', false) === true);
 
     // Garder l'écran allumé pendant les courses.
-    var lockBtn = shop.querySelector('[data-wakelock]');
+    var lockBtn = $('[data-wakelock]', shop);
     var lock = null;
     function acquire() {
         navigator.wakeLock.request('screen').then(function (l) {
@@ -250,11 +307,11 @@
     }
     if (lockBtn && navigator.wakeLock) {
         lockBtn.hidden = false;
-        var want = load('menu-wakelock', false) === true;
+        var want = load('kitcho-wakelock', false) === true;
         var apply = function (on) {
             want = on;
             lockBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-            save('menu-wakelock', on);
+            save('kitcho-wakelock', on);
             if (on && !lock) acquire();
             if (!on && lock) { lock.release(); lock = null; }
         };
@@ -264,10 +321,53 @@
         if (want) acquire();
     }
 
+    // Mode magasin : plein écran, un rayon à la fois, gros boutons.
+    var storeBtn = $('[data-store-mode]', shop);
+    var storeBar = $('.store-bar', shop);
+    if (storeBtn && storeBar) {
+        var cur = 0;
+        var aisles = function () { return $$('[data-aisle]', shop); };
+        var showAisle = function (i) {
+            var list = aisles();
+            cur = Math.max(0, Math.min(i, list.length - 1));
+            list.forEach(function (a, idx) {
+                a.classList.toggle('is-current', idx === cur);
+                if (idx === cur) setClosed(a, false);
+            });
+            var last = cur === list.length - 1;
+            $('[data-store-next-label]', storeBar).textContent = last ? 'Terminer' : 'Suivant · ' + $('.k-aisle__name', list[cur + 1]).textContent;
+            $('[data-store-prev]', storeBar).disabled = cur === 0;
+            window.scrollTo(0, 0);
+        };
+        var enter = function () {
+            var list = aisles();
+            if (!list.length) return;
+            shop.classList.add('store-mode');
+            document.body.classList.add('store-on');
+            storeBar.hidden = false;
+            var first = 0;
+            for (var i = 0; i < list.length; i++) { if (!list[i].classList.contains('is-done')) { first = i; break; } }
+            showAisle(first);
+        };
+        var leave = function () {
+            shop.classList.remove('store-mode');
+            document.body.classList.remove('store-on');
+            storeBar.hidden = true;
+            aisles().forEach(function (a) { a.classList.remove('is-current'); });
+            window.scrollTo(0, 0);
+        };
+        storeBtn.addEventListener('click', enter);
+        $('[data-store-exit]', storeBar).addEventListener('click', leave);
+        $('[data-store-prev]', storeBar).addEventListener('click', function () { showAisle(cur - 1); });
+        $('[data-store-next]', storeBar).addEventListener('click', function () {
+            if (cur >= aisles().length - 1) leave(); else showAisle(cur + 1);
+        });
+    }
+
     // Coches non envoyées lors d'une visite précédente (réseau coupé) : on les réaffiche puis on les renvoie.
     Object.keys(pending).forEach(function (key) {
-        var li = rowOf(key);
-        if (li) { paint(li, pending[key] === '1'); sortAisle(li.closest('[data-aisle]')); }
+        var row = rowOf(key);
+        if (row) { inputOf(row).checked = pending[key] === '1'; sortAisle(aisleOf(row)); }
         else delete pending[key];
     });
     recount();

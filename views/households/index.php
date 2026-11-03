@@ -1,36 +1,37 @@
-<h1>Mes foyers</h1>
+<h1 class="page-title">Mes foyers</h1>
 <?php if (!$households): ?>
-    <p class="notice">Vous ne faites partie d'aucun foyer. Créez le vôtre, ou ouvrez un lien d'invitation que l'on vous a envoyé.</p>
+    <div class="k-banner" role="status"><?= icon('info') ?><div class="k-banner__body">Vous ne faites partie d'aucun foyer. Créez le vôtre, ou ouvrez un lien d'invitation que l'on vous a envoyé.</div></div>
 <?php endif; ?>
 <div class="grid-2">
-    <section class="card">
+    <section class="k-card k-card--pad">
         <h2>Foyers</h2>
         <?php if ($households): ?>
         <ul class="plain list-rows">
             <?php foreach ($households as $h): ?>
                 <li>
-                    <span><strong><?= e($h['name']) ?></strong>
-                        <span class="badge"><?= $h['role'] === 'owner' ? 'administrateur' : 'membre' ?></span>
-                        <span class="muted small">· <?= (int) $h['members'] ?> <?= plural((int) $h['members'], 'membre', 'membres') ?></span></span>
+                    <span><b><?= e($h['name']) ?></b>
+                        <span class="k-badge <?= $h['role'] === 'owner' ? 'k-badge--admin' : 'k-badge--member' ?>"><?= $h['role'] === 'owner' ? 'administrateur' : 'membre' ?></span><br>
+                        <span class="k-meta"><?= (int) $h['members'] ?> <?= plural((int) $h['members'], 'membre', 'membres') ?></span></span>
                     <?php if ($current && (int) $current['id'] === (int) $h['id']): ?>
-                        <span class="badge badge-ok">actif</span>
+                        <span class="k-badge cat-veg"><?= icon('check', 'sm') ?>actif</span>
                     <?php else: ?>
                         <form method="post" action="<?= e(url('/households/switch')) ?>" class="inline">
                             <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $h['id'] ?>">
-                            <button class="btn btn-small">Ouvrir</button>
+                            <button class="k-btn k-btn--secondary k-btn--sm">Ouvrir</button>
                         </form>
                     <?php endif; ?>
                 </li>
             <?php endforeach; ?>
         </ul>
-        <?php else: ?><p class="muted">Aucun foyer pour l'instant.</p><?php endif; ?>
+        <?php else: ?><p class="k-muted">Aucun foyer pour l'instant.</p><?php endif; ?>
     </section>
-    <section class="card">
+    <section class="k-card k-card--pad">
         <h2>Créer un foyer</h2>
         <form method="post" action="<?= e(url('/households/create')) ?>" class="stack">
             <?= csrf_field() ?>
-            <label>Nom du foyer <input name="name" required maxlength="100" placeholder="Ex. : La famille Dupont"></label>
-            <button class="btn btn-primary">Créer</button>
+            <div class="k-field"><label class="k-label" for="hh-name">Nom du foyer</label>
+                <input class="k-input" id="hh-name" name="name" required maxlength="100" placeholder="Ex. : La famille Dupont"></div>
+            <button class="k-btn k-btn--primary"><?= icon('plus') ?>Créer</button>
         </form>
     </section>
 </div>

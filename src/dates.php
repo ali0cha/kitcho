@@ -43,6 +43,12 @@ function month_name(DateTimeImmutable $d): string
     return FR_MONTHS[(int) $d->format('n') - 1];
 }
 
+/** Mois abrégé à la française : janv., févr., mars, avr., mai, juin, juil., août, sept., oct., nov., déc. */
+function month_abbr(DateTimeImmutable $d): string
+{
+    return ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'][(int) $d->format('n') - 1];
+}
+
 function fmt_day(DateTimeImmutable $d): string
 {
     return ucfirst(day_name($d)) . ' ' . $d->format('j') . ' ' . month_name($d);

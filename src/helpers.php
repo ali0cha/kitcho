@@ -184,3 +184,81 @@ function plural(int|float $n, string $one, string $many): string
 {
     return $n > 1 ? $many : $one;
 }
+
+// ---------------------------------------------------------------- design system (kitcho.css)
+
+/** Pictogramme (masque CSS) : <i class="k-i i-check">. $size : '' | 'sm' | 'lg' | 'xl'. */
+function icon(string $name, string $size = '', string $extra = ''): string
+{
+    return '<i class="k-i' . ($size !== '' ? ' k-i--' . $size : '') . ' i-' . $name . ($extra !== '' ? ' ' . $extra : '') . '" aria-hidden="true"></i>';
+}
+
+const CATEGORY_STYLE = [
+    'vegetarien' => ['cat-veg', 'leaf'],
+    'poisson'    => ['cat-fish', 'fish'],
+    'viande'     => ['cat-meat', 'meat'],
+    'soupe'      => ['cat-soup', 'soup'],
+    'salade'     => ['cat-salad', 'salad'],
+    'autre'      => ['cat-other', 'plate'],
+];
+
+const AISLE_ICONS = [
+    'Fruits & légumes' => 'apple', 'Boulangerie' => 'bread', 'Boucherie & poissonnerie' => 'meat', 'Crèmerie' => 'milk',
+    'Épicerie' => 'jar', 'Surgelés' => 'snow', 'Boissons' => 'glass', 'Autre' => 'bag',
+];
+
+function cat_class(string $category): string
+{
+    return (CATEGORY_STYLE[$category] ?? CATEGORY_STYLE['autre'])[0];
+}
+
+function cat_icon(string $category): string
+{
+    return (CATEGORY_STYLE[$category] ?? CATEGORY_STYLE['autre'])[1];
+}
+
+function cat_badge(string $category): string
+{
+    return '<span class="k-badge ' . cat_class($category) . '">' . icon(cat_icon($category)) . e(CATEGORIES[$category] ?? 'Autre') . '</span>';
+}
+
+/** Vignette de recette sans photo : couleur + motif + pictogramme de la catégorie. */
+function thumb(string $category, bool $large = false): string
+{
+    return '<span class="k-thumb ' . cat_class($category) . ($large ? ' k-thumb--lg' : '') . '">' . icon(cat_icon($category)) . '</span>';
+}
+
+function aisle_icon(string $aisle): string
+{
+    return AISLE_ICONS[$aisle] ?? 'bag';
+}
+
+/** Type de message flash → variante de bandeau et pictogramme. */
+function banner_variant(string $type): array
+{
+    return match ($type) {
+        'success' => ['k-banner--ok', 'check'],
+        'error'   => ['k-banner--err', 'warn'],
+        default   => ['', 'info'],
+    };
+}
+
+/** Logo : cocotte cochée + mot-symbole. */
+function logo(bool $withText = true): string
+{
+    return '<a class="k-logo" href="' . e(url('/')) . '" aria-label="' . e(config('app.name', 'Kitcho')) . ' — accueil">'
+        . icon('pot', 'lg', 'k-logo__mark') . ($withText ? '<span>' . e(config('app.name', 'Kitcho')) . '</span>' : '') . '</a>';
+}
+
+/** État vide : cocotte (sans coche) sur un rond vichy. */
+function empty_art(): string
+{
+    return '<span class="k-art k-gingham" aria-hidden="true">' . icon('pot0', 'xl') . '</span>';
+}
+
+/** Bandeau vichy d'accueil (connexion, inscription, invitation). */
+function hero(string $tagline = 'Planifiez vos repas, partagez vos courses.'): string
+{
+    return '<div class="k-hero k-gingham"><span class="k-logo k-logo--xl">' . icon('pot', 'xl', 'k-logo__mark')
+        . '<span>' . e(config('app.name', 'Kitcho')) . '</span></span><p class="k-muted">' . e($tagline) . '</p></div>';
+}

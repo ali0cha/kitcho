@@ -89,6 +89,9 @@ function shopping_extra_delete(): void
     require_post();
     $monday = monday_of(parse_date(input_str('d')) ?? today());
     db_run('DELETE FROM shopping_extras WHERE id = ? AND household_id = ?', [input_int('id', 0), $hh['id']]);
+    if (wants_json()) {
+        json_response(['ok' => true]);
+    }
     shopping_back($monday);
 }
 

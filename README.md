@@ -2,6 +2,10 @@
 
 Application PHP 8.1+ / MySQL (ou MariaDB), sans framework ni dépendance : on dépose les fichiers sur l'hébergement et c'est parti.
 
+## Design
+
+L'interface suit le système de design Kitcho (fond crème, basilic pour agir, tomate pour les favoris, beurre pour « aujourd'hui », titres en serif, motif vichy) : jetons et composants dans `assets/kitcho.css`, mise en page dans `assets/style.css`, guide complet dans [DESIGN.md](DESIGN.md). Mode clair et sombre automatiques, navigation par onglets en bas sur mobile, aucune ressource externe.
+
 ## Fonctionnalités
 
 - **Comptes** : inscription, connexion, changement de mot de passe, limitation des tentatives de connexion, protection CSRF.
@@ -12,7 +16,7 @@ Application PHP 8.1+ / MySQL (ou MariaDB), sans framework ni dépendance : on d�
 - **Calendrier** : vue mois et vue semaine (déjeuner / dîner, portions par repas, notes, déplacement d'un repas à une autre date, repas « libres »).
   - **Saisie d'un repas par un simple champ texte avec autocomplétion** : si le texte correspond à une recette (accents, pluriels et « de/du/la » ignorés, abréviations et petites fautes tolérées, ex. « pâtes bolo » → *Pâtes bolognaise*), elle est utilisée. Sinon, **la recette est créée automatiquement** (catégorie devinée, sans ingrédients) — sauf si un plat qui y ressemble déjà (ex. « Pizza » pour *Pizza maison*) : le repas reste alors libre et l'appli vous indique la recette proche. Les libellés qui ne sont pas des plats (« Restaurant », « Restes », « Chez Marie », « Cantine »…) restent des repas libres.
 - **Génération du menu de la semaine** : choisissez les jours, l'app propose des plats variés — elle évite ceux faits ces N dernières semaines, favorise les favoris, limite la répétition d'une catégorie et garantit un minimum de repas végétariens. Bouton ↻ pour changer un plat. « Copier la semaine précédente » disponible.
-- **Liste de courses hebdomadaire** : ingrédients agrégés (même article = additionné, kg/g et l/cl/ml convertis), adaptés au nombre de portions de chaque repas, rangés par rayon, cases à cocher sans rechargement, articles ajoutés à la main, copie en texte, impression.
+- **Liste de courses hebdomadaire** : ingrédients agrégés (même article = additionné, kg/g et l/cl/ml convertis), adaptés au nombre de portions de chaque repas, rangés par rayon, cases à cocher sans rechargement, **mode magasin** plein écran (un rayon à la fois, grosses cibles), articles ajoutés à la main, copie en texte, impression.
   - **Pensée pour le magasin, sur téléphone** : toute la ligne est cliquable (grande zone tactile), les articles cochés descendent en bas du rayon et sont barrés, une barre de progression reste visible en haut, chaque rayon est repliable avec son compteur, « Masquer les cochés » et « Écran allumé » (l'écran ne se met pas en veille).
   - **Réseau capricieux** : la coche s'affiche instantanément ; sans réseau elle est conservée et envoyée dès le retour de la connexion.
   - **À plusieurs en même temps** : si une autre personne du foyer coche un article, votre liste se met à jour toute seule (toutes les ~12 s).
