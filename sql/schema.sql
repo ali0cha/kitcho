@@ -163,3 +163,13 @@ CREATE TABLE IF NOT EXISTS calendar_feeds (
     CONSTRAINT fk_feed_hh      FOREIGN KEY (household_id) REFERENCES households (id) ON DELETE CASCADE,
     CONSTRAINT fk_feed_creator FOREIGN KEY (created_by)   REFERENCES users (id)      ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Premiers pas : étapes marquées par un utilisateur (visite de la liste de courses, installation de l'appli)
+-- et masquage de la carte d'accueil (step = 'dismissed'). Les autres étapes se déduisent des données du foyer.
+CREATE TABLE IF NOT EXISTS onboarding_progress (
+    user_id INT UNSIGNED NOT NULL,
+    step    VARCHAR(30) NOT NULL,
+    done_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, step),
+    CONSTRAINT fk_onb_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

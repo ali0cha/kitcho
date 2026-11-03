@@ -14,6 +14,8 @@ Il faut servir l'application en **HTTPS** (sauf `localhost`) : voir [TRUENAS.md]
 
 ## Fonctionnalités
 
+- **Premiers pas (onboarding)** : au premier lancement, une carte d'accueil sur la page Semaine explique le principe (recettes → menu → courses) et propose l'étape suivante. Les étapes se cochent toutes seules : recettes ajoutées, ingrédients saisis, premier menu, liste de courses ouverte, foyer invité (propriétaires), application installée en plein écran. La carte se masque (croix) et se rouvre depuis le profil ; un membre invité dans un foyer déjà rempli ne voit que les étapes qui le concernent.
+
 - **Comptes** : inscription, connexion, changement de mot de passe, limitation des tentatives de connexion, protection CSRF.
 - **Foyers (« households »)** : un utilisateur peut appartenir à plusieurs foyers et basculer de l'un à l'autre. Rôles *administrateur* / *membre*.
   - **Lien d'invitation** : `…/join/<jeton>`, durée 1 j / 7 j / 30 j / illimitée, usage unique ou multiple, désactivable à tout moment. La personne invitée crée son compte (ou se connecte) et rejoint le foyer automatiquement.

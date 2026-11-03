@@ -21,7 +21,7 @@
         </form>
     </section>
 </div>
-<section class="k-card k-card--pad" data-pwa-card>
+<section class="k-card k-card--pad" data-pwa-card id="application">
     <h2>Application</h2>
     <p class="k-muted">Installez Kitcho sur votre téléphone ou votre ordinateur : icône sur l'écran d'accueil, plein écran, et dernières pages disponibles même sans réseau.</p>
     <div class="k-banner k-banner--ok" data-pwa-status role="status" hidden><?= icon('check') ?><div class="k-banner__body"><b>Application installée</b>Vous utilisez déjà Kitcho en plein écran.</div></div>
@@ -34,6 +34,14 @@
             <li><b>Ordinateur (Chrome, Edge)</b> : icône d'installation dans la barre d'adresse.</li>
         </ul>
     </div>
+</section>
+<section class="k-card k-card--pad">
+    <h2>Premiers pas</h2>
+    <p class="k-muted">Revoir la liste d'étapes de mise en route sur la page Semaine.</p>
+    <form method="post" action="<?= e(url('/onboarding/reset')) ?>">
+        <?= csrf_field() ?>
+        <button class="k-btn k-btn--secondary"><?= icon('refresh') ?>Revoir les premiers pas</button>
+    </form>
 </section>
 <section class="k-card k-card--pad">
     <h2>Mes foyers</h2>

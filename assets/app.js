@@ -69,6 +69,17 @@
         }
     }
 
+    // Premiers pas : on signale au serveur que l'application tourne installée (plein écran).
+    try {
+        var isInstalled = window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;
+        if (isInstalled && !document.body.hasAttribute('data-guest') && !sessionStorage.getItem('kitcho-install-seen')) {
+            fetch(base + '/onboarding/seen', {
+                method: 'POST', credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' },
+                body: new URLSearchParams({ _csrf: document.body.getAttribute('data-csrf'), step: 'install' })
+            }).then(function (r) { if (r.ok) sessionStorage.setItem('kitcho-install-seen', '1'); }).catch(function () { /* hors ligne : tant pis */ });
+        }
+    } catch (err) { /* stockage indisponible */ }
+
     var installCard = $('[data-pwa-card]');
     if (installCard) {
         var installed = window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;

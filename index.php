@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/src/bootstrap.php';
-foreach (['auth', 'households', 'recipes', 'planning', 'shopping', 'pwa'] as $c) {
+foreach (['auth', 'households', 'recipes', 'planning', 'shopping', 'pwa', 'onboarding'] as $c) {
     require SRC . '/controllers/' . $c . '.php';
 }
 
@@ -41,6 +41,9 @@ $routes = [
     ['POST',     '#^/recipes/(\d+)/favorite$#',   'recipes_favorite'],
 
     ['GET',  '#^/week$#',                         'planning_week'],
+    ['POST', '#^/onboarding/dismiss$#',           'onboarding_dismiss'],
+    ['POST', '#^/onboarding/reset$#',             'onboarding_reset'],
+    ['POST', '#^/onboarding/seen$#',              'onboarding_seen'],
     ['GET',  '#^/calendar$#',                     'planning_calendar'],
     ['GET|HEAD', '#^/cal/([0-9a-f]{40})\.ics$#',  'calendar_feed_ics'],
     ['POST', '#^/calendar/feed/create$#',         'calendar_feed_create'],

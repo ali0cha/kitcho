@@ -46,6 +46,7 @@ function planning_week(): void
     $share = db_one('SELECT * FROM share_links WHERE household_id = ? AND week_start = ? ORDER BY id DESC LIMIT 1', [$hid, ymd($monday)]);
 
     render('planning/week', [
+        'onboarding' => onboarding_card($hh, current_user()),
         'title'    => 'Semaine du ' . $monday->format('j') . ' ' . month_name($monday),
         'hh'       => $hh,
         'monday'   => $monday,

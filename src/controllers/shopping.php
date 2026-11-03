@@ -4,6 +4,7 @@ declare(strict_types=1);
 function shopping_index(): void
 {
     $hh = require_household();
+    onboarding_mark((int) current_user()['id'], 'shopping');   // étape « Ouvrez la liste de courses » des premiers pas
     $monday = requested_week();
     $list = build_shopping_list((int) $hh['id'], $monday, (int) $hh['default_servings']);
     $title = 'Courses — semaine du ' . $monday->format('j') . ' ' . month_name($monday);

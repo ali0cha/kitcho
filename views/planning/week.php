@@ -17,6 +17,8 @@ $todayStr = ymd(today());
     </div>
 </div>
 
+<?php if (!empty($onboarding)) { require ROOT . '/views/partials/onboarding.php'; } ?>
+
 <nav class="week-strip k-noprint" aria-label="Aller à un jour">
     <?php foreach ($days as $d): $ds = ymd($d); ?>
         <a href="#d-<?= e($ds) ?>" class="<?= $ds === $todayStr ? 'is-today' : '' ?>">
@@ -26,7 +28,7 @@ $todayStr = ymd(today());
     <?php endforeach; ?>
 </nav>
 
-<details class="k-details gen-panel" <?= $meals === 0 ? 'open' : '' ?>>
+<details class="k-details gen-panel" id="generer" <?= $meals === 0 ? 'open' : '' ?>>
     <summary><?= icon('spark') ?>Générer le menu de la semaine<?= icon('down') ?></summary>
     <div class="k-details__body">
         <form method="post" action="<?= e(url('/week/generate')) ?>" class="stack">
