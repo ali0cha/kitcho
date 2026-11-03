@@ -1,5 +1,9 @@
 FROM php:8.3-apache
 
+LABEL org.opencontainers.image.title="Kitcho" \
+      org.opencontainers.image.description="Planning de repas, liste de courses et foyers partagés" \
+      org.opencontainers.image.source="https://github.com/ali0cha/kitcho"
+
 RUN docker-php-ext-install pdo_mysql \
     && a2enmod rewrite headers \
     && echo 'ServerName localhost' > /etc/apache2/conf-available/servername.conf \
@@ -10,8 +14,15 @@ COPY docker/apache.conf /etc/apache2/conf-available/menu.conf
 RUN a2enconf menu
 
 COPY . /var/www/html/
+COPY docker/entrypoint.sh /usr/local/bin/kitcho-entrypoint
 # L'installeur web est inutile : la configuration vient des variables d'environnement.
 RUN rm -f /var/www/html/install.php /var/www/html/config.php \
+    && chmod +x /usr/local/bin/kitcho-entrypoint \
     && chown -R www-data:www-data /var/www/html
 
 EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD php -r 'exit(@file_get_contents("http://127.0.0.1/login") === false ? 1 : 0);'
+
+ENTRYPOINT ["kitcho-entrypoint"]
+CMD ["apache2-foreground"]

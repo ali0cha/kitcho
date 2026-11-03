@@ -16,6 +16,9 @@ services:
       ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
       APP_DEBUG: ${APP_DEBUG:-false}
       TZ: ${TZ:-Europe/Brussels}
+    volumes:
+      # Fichier d'import de recettes (non inclus dans l'image) : php bin/import_recipes.php <foyer>
+      - ./seed:/var/www/html/seed:ro
     ports:
       - "${APP_PORT:-8080}:80"
 
@@ -30,12 +33,11 @@ services:
       TZ: ${TZ:-Europe/Brussels}
     volumes:
       - db_data:/var/lib/mysql
-      # Le schéma est appliqué automatiquement à la première création de la base.
-      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
-      # Prêt = serveur définitif joignable en TCP avec les identifiants de l'appli ET schéma chargé
+      # Prêt = serveur définitif joignable en TCP avec les identifiants de l'appli
       # (healthcheck.sh seul réussit déjà pendant l'initialisation temporaire).
-      test: ["CMD-SHELL", "mariadb -h127.0.0.1 -u\"$$MARIADB_USER\" -p\"$$MARIADB_PASSWORD\" \"$$MARIADB_DATABASE\" -e 'SELECT 1 FROM login_attempts LIMIT 1'"]
+      # Le schéma est créé par l'application elle-même au démarrage (bin/migrate.php).
+      test: ["CMD-SHELL", "mariadb -h127.0.0.1 -u\"$$MARIADB_USER\" -p\"$$MARIADB_PASSWORD\" \"$$MARIADB_DATABASE\" -e 'SELECT 1'"]
       interval: 5s
       timeout: 5s
       retries: 20

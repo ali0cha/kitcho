@@ -18,6 +18,10 @@ Application PHP 8.1+ / MySQL (ou MariaDB), sans framework ni dépendance : on d�
   - **À plusieurs en même temps** : si une autre personne du foyer coche un article, votre liste se met à jour toute seule (toutes les ~12 s).
 - **Menus partagés** : tous les membres du foyer voient et modifient le même planning. En plus, un **lien de partage en lecture seule** (menu + courses d'une semaine) peut être créé pour quelqu'un hors du foyer.
 
+## Installation sur TrueNAS
+
+Voir [TRUENAS.md](TRUENAS.md) : l'image est publiée automatiquement par GitHub Actions et se déploie avec un simple YAML à coller (fichier [`truenas/compose.yaml`](truenas/compose.yaml)).
+
 ## Installation avec Docker Compose
 
 ```bash
@@ -28,7 +32,7 @@ docker compose up -d --build
 L'application est alors disponible sur http://localhost:8080 (port modifiable avec `APP_PORT`). Créez votre compte sur `/register`.
 
 - Deux services : `app` (PHP 8.3 + Apache, `mod_rewrite` activé) et `db` (MariaDB 11, données dans le volume `db_data`).
-- Le schéma SQL est appliqué automatiquement à la première création de la base ; aucune étape d'installation web (`install.php` est retiré de l'image).
+- Le schéma SQL est créé par l'application elle-même au démarrage (`bin/migrate.php`, idempotent) ; aucune étape d'installation web (`install.php` est retiré de l'image).
 - La configuration se fait par variables d'environnement (`.env`) : `DB_NAME`, `DB_USER`, `DB_PASS`, `APP_NAME`, `ALLOW_REGISTRATION`, `APP_DEBUG`, `TZ`.
 - Importer vos recettes : `docker compose exec app php bin/import_recipes.php` (liste les foyers), puis `docker compose exec app php bin/import_recipes.php 1`.
 - Sauvegarde : `docker compose exec db sh -c 'mariadb-dump -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" "$MARIADB_DATABASE"' > sauvegarde.sql`

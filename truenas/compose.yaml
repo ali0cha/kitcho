@@ -1,0 +1,43 @@
+# Kitcho — à coller dans TrueNAS : Apps → Custom App → Install via YAML
+# 1) Remplacez les DEUX occurrences de CHANGEZ-MOI (mot de passe de la base, identique aux deux endroits).
+# 2) Épinglez la version (ex. :1.0.0) plutôt que :latest pour pouvoir mettre à jour de façon fiable.
+services:
+  kitcho:
+    image: ghcr.io/ali0cha/kitcho:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_NAME: kitcho
+      DB_USER: kitcho
+      DB_PASS: CHANGEZ-MOI
+      APP_NAME: Kitcho
+      # false = on ne peut créer un compte qu'avec un lien d'invitation
+      ALLOW_REGISTRATION: "true"
+      TZ: Europe/Brussels
+    ports:
+      - "30080:80"        # interface web : http://IP-DU-NAS:30080
+
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: kitcho
+      MARIADB_USER: kitcho
+      MARIADB_PASSWORD: CHANGEZ-MOI
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+      TZ: Europe/Brussels
+    volumes:
+      - kitcho_db:/var/lib/mysql
+      # Variante : stocker la base dans un dataset de votre choix (le dossier doit appartenir à l'UID 999) :
+      # - /mnt/VOTRE-POOL/apps/kitcho/db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb -h127.0.0.1 -u\"$$MARIADB_USER\" -p\"$$MARIADB_PASSWORD\" \"$$MARIADB_DATABASE\" -e 'SELECT 1'"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  kitcho_db:

@@ -1,5 +1,10 @@
 .git
+.github
 .env
 config.php
 docker-compose.yml
+truenas
 README.md
+TRUENAS.md
+# Données personnelles : jamais dans l'image publiée (montées à la demande en local, voir docker-compose.yml)
+seed
