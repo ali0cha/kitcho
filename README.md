@@ -93,6 +93,7 @@ bin/import_recipes.php, seed/recipes.json
 
 ## Limites connues
 
+- Connexion mémorisée **30 jours** sur l'appareil. Les sessions sont gardées dans le conteneur : après une mise à jour de l'image, il faut se reconnecter une fois (les coches non envoyées de la liste de courses sont conservées sur l'appareil et renvoyées après reconnexion).
 - Pas de « mot de passe oublié » par e-mail : l'administrateur du serveur réinitialise un mot de passe avec `php bin/reset_password.php <email>` (voir TRUENAS.md pour Docker).
 - Semaine du lundi au dimanche ; la liste de courses porte sur une semaine à la fois.
 - L'historique daté de votre Excel n'est pas importé (dates à la semaine, jours inconnus, et trop ancien pour influencer la génération).

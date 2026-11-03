@@ -133,6 +133,7 @@
         total: $('[data-total]', shop),
         fill: $('[data-progress-fill]', shop),
         offline: $('[data-offline]', shop),
+        expired: $('[data-expired]', shop),
         changed: $('[data-changed]', shop),
         allDone: $('[data-alldone]', shop)
     };
@@ -175,12 +176,17 @@
     }
 
     function setOffline(on) { if (el.offline) el.offline.hidden = !on; }
+    function setExpired(on) { if (el.expired) el.expired.hidden = !on; }
 
     function send(key, value) {
         var body = new URLSearchParams({ _csrf: csrf, d: week, key: key, checked: value });
         return fetch(shop.getAttribute('data-toggle-url'), {
             method: 'POST', body: body, credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' }
-        }).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r; });
+        }).then(function (r) {
+            if (r.status === 401) { var e = new Error('auth'); e.auth = true; throw e; }
+            if (!r.ok) throw new Error('http ' + r.status);
+            return r;
+        });
     }
 
     // Envoie les coches en attente ; en cas d'échec réseau on garde tout et on réessaiera.
@@ -190,13 +196,14 @@
         syncing = true;
         var key = keys[0], value = pending[key];
         send(key, value).then(function () {
+            setExpired(false);
             if (pending[key] === value) delete pending[key];
             save(storeKey, pending);
             syncing = false;
             flush();
-        }).catch(function () {
+        }).catch(function (err) {
             syncing = false;
-            setOffline(true);
+            if (err && err.auth) { setOffline(false); setExpired(true); } else { setOffline(true); }
         });
     }
 
@@ -260,7 +267,11 @@
     function poll() {
         if (document.hidden || Object.keys(pending).length || syncing) return;
         fetch(shop.getAttribute('data-state-url'), { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
-            .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+            .then(function (r) {
+                if (r.status === 401) { var e = new Error('auth'); e.auth = true; throw e; }
+                if (!r.ok) throw new Error();
+                return r.json();
+            })
             .then(function (state) {
                 if (Object.keys(pending).length) return;
                 var known = allRows().length;
@@ -280,8 +291,9 @@
                 touched.forEach(sortAisle);
                 if (touched.length) recount();
                 setOffline(false);
+                setExpired(false);
             })
-            .catch(function () { /* hors connexion : on réessaiera */ });
+            .catch(function (err) { if (err && err.auth) setExpired(true); /* sinon hors connexion : on réessaiera */ });
     }
     setInterval(poll, 12000);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); });

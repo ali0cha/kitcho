@@ -62,8 +62,11 @@ if (PHP_SAPI !== 'cli') {
     $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
         || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
     session_name('menu_sid');
+    // Téléphone en magasin : on reste connecté 30 jours (cookie persistant + côté serveur).
+    $sessionLifetime = 30 * 86400;
+    ini_set('session.gc_maxlifetime', (string) $sessionLifetime);
     session_set_cookie_params([
-        'lifetime' => 0,
+        'lifetime' => $sessionLifetime,
         'path'     => base_path() . '/',
         'secure'   => $https,
         'httponly' => true,

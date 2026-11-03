@@ -18,12 +18,24 @@ function current_user(): ?array
     return $user;
 }
 
+/** Adresses qui renvoient des données (JSON, fichiers) : jamais une destination valable après connexion. */
+function is_data_path(string $uri): bool
+{
+    $path = (string) parse_url($uri, PHP_URL_PATH);
+    return (bool) preg_match('#/(shopping/state|recipes/export)$#', $path);
+}
+
 function require_login(): array
 {
     $u = current_user();
     if (!$u) {
-        $next = $_SERVER['REQUEST_METHOD'] === 'GET' ? ($_SERVER['REQUEST_URI'] ?? '') : '';
-        $_SESSION['next'] = $next;
+        // Requête de fond (fetch) : on répond « non connecté » au lieu de rediriger,
+        // et on ne retient surtout pas cette adresse comme page de retour.
+        if (wants_json()) {
+            json_response(['error' => 'auth'], 401);
+        }
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        $_SESSION['next'] = ($_SERVER['REQUEST_METHOD'] === 'GET' && !is_data_path($uri)) ? $uri : '';
         redirect('/login');
     }
     return $u;
@@ -261,7 +273,7 @@ function after_login_redirect(int $userId): never
     $next = $_SESSION['next'] ?? '';
     unset($_SESSION['next']);
     // N'autorise qu'un chemin local, jamais une URL externe.
-    if (is_string($next) && $next !== '' && $next[0] === '/' && !str_starts_with($next, '//') && !str_contains($next, "\n")) {
+    if (is_string($next) && $next !== '' && $next[0] === '/' && !str_starts_with($next, '//') && !str_contains($next, "\n") && !is_data_path($next)) {
         header('Location: ' . $next);
         exit;
     }

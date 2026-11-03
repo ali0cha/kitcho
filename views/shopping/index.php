@@ -78,6 +78,10 @@ $complete = $total > 0 && $done === $total;
         <div class="k-banner k-banner--off" data-offline role="status" hidden>
             <?= icon('wifioff') ?><div class="k-banner__body"><b>Hors connexion</b>Vos coches sont conservées et seront envoyées dès le retour du réseau.</div>
         </div>
+        <div class="k-banner k-banner--err" data-expired role="alert" hidden>
+            <?= icon('lock') ?><div class="k-banner__body"><b>Session expirée</b>Vos coches sont conservées sur cet appareil. Reconnectez-vous pour les envoyer.</div>
+            <button type="button" class="k-banner__act" onclick="location.reload()">Se reconnecter</button>
+        </div>
         <div class="k-banner" data-changed role="status" hidden>
             <?= icon('info') ?><div class="k-banner__body"><b>Liste modifiée</b>Quelqu'un d'autre a changé la liste.</div>
             <button type="button" class="k-banner__act" onclick="location.reload()">Actualiser</button>
