@@ -1,0 +1,44 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-menu}
+      DB_USER: ${DB_USER:-menu}
+      DB_PASS: ${DB_PASS:-change-me}
+      APP_NAME: ${APP_NAME:-Kitcho}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      TZ: ${TZ:-Europe/Brussels}
+    ports:
+      - "${APP_PORT:-8080}:80"
+
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-menu}
+      MARIADB_USER: ${DB_USER:-menu}
+      MARIADB_PASSWORD: ${DB_PASS:-change-me}
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+      TZ: ${TZ:-Europe/Brussels}
+    volumes:
+      - db_data:/var/lib/mysql
+      # Le schéma est appliqué automatiquement à la première création de la base.
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      # Prêt = serveur définitif joignable en TCP avec les identifiants de l'appli ET schéma chargé
+      # (healthcheck.sh seul réussit déjà pendant l'initialisation temporaire).
+      test: ["CMD-SHELL", "mariadb -h127.0.0.1 -u\"$$MARIADB_USER\" -p\"$$MARIADB_PASSWORD\" \"$$MARIADB_DATABASE\" -e 'SELECT 1 FROM login_attempts LIMIT 1'"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  db_data:

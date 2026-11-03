@@ -1,0 +1,23 @@
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Dossiers et fichiers internes jamais accessibles depuis le web
+    RewriteRule ^(src|views|sql|bin|seed)(/|$) - [F,L]
+    RewriteRule ^config(\.sample)?\.php$ - [F,L]
+    # Tout le reste (hors fichiers existants) passe par le contrôleur frontal
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>
+
+<FilesMatch "\.(sql|md|json|sample\.php)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
