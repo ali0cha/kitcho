@@ -1,3 +1,4 @@
+<a class="k-btn k-btn--ghost k-btn--sm back-link" href="<?= e(url('/week')) ?>"><?= icon('left', 'sm') ?>Retour</a>
 <h1 class="page-title">Mon profil</h1>
 <div class="grid-2">
     <section class="k-card k-card--pad">
@@ -20,6 +21,20 @@
         </form>
     </section>
 </div>
+<section class="k-card k-card--pad" data-pwa-card>
+    <h2>Application</h2>
+    <p class="k-muted">Installez Kitcho sur votre téléphone ou votre ordinateur : icône sur l'écran d'accueil, plein écran, et dernières pages disponibles même sans réseau.</p>
+    <div class="k-banner k-banner--ok" data-pwa-status role="status" hidden><?= icon('check') ?><div class="k-banner__body"><b>Application installée</b>Vous utilisez déjà Kitcho en plein écran.</div></div>
+    <button type="button" class="k-btn k-btn--primary" data-pwa-install hidden><?= icon('plus') ?>Installer l'application</button>
+    <div data-pwa-howto>
+        <h3>Comment faire</h3>
+        <ul class="plain">
+            <li><b>Android (Chrome)</b> : menu ⋮ → <i>Installer l'application</i> (ou le bouton ci-dessus).</li>
+            <li><b>iPhone / iPad (Safari)</b> : bouton Partager → <i>Sur l'écran d'accueil</i>.</li>
+            <li><b>Ordinateur (Chrome, Edge)</b> : icône d'installation dans la barre d'adresse.</li>
+        </ul>
+    </div>
+</section>
 <section class="k-card k-card--pad">
     <h2>Mes foyers</h2>
     <ul class="plain list-rows">

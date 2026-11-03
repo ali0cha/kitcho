@@ -1,3 +1,4 @@
+<a class="k-btn k-btn--ghost k-btn--sm back-link" href="<?= e(url($id ? '/recipes/' . $id : '/recipes')) ?>"><?= icon('left', 'sm') ?><?= $id ? 'Retour à la recette' : 'Recettes' ?></a>
 <h1 class="page-title"><?= e($title) ?></h1>
 <form method="post" class="k-card k-card--pad stack">
     <?= csrf_field() ?>

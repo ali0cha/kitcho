@@ -54,9 +54,34 @@ sudo docker exec -i NOM-DU-CONTENEUR-DB sh -c 'mariadb -u"$MARIADB_USER" -p"$MAR
 - Instantanés ZFS du pool qui héberge les applications (*Data Protection → Periodic Snapshot Tasks*).
 - Ou un export SQL régulier : même commande `mariadb-dump` que ci-dessus, lancée depuis le shell du NAS.
 
-## 6. Accès depuis l'extérieur
+## 6. Publier sur Internet en HTTPS (ex. https://kitcho.aliocha.xyz)
 
-Placez Kitcho derrière un reverse proxy HTTPS (Nginx Proxy Manager, Traefik, Caddy…). Il doit transmettre `X-Forwarded-Proto: https` : le cookie de session passe alors en `Secure`. N'ouvrez pas le port 30080 directement sur Internet, et n'exposez jamais le port de la base (il n'est pas publié).
+Le HTTPS est **indispensable** pour que Kitcho s'installe comme application (PWA) sur un téléphone : sans lui, pas d'icône plein écran ni de mode hors connexion. Il faut un reverse proxy devant l'application (Nginx Proxy Manager, Traefik, Caddy…). Exemple avec **Nginx Proxy Manager** :
+
+1. **DNS** : chez votre registrar, un enregistrement `A` (et `AAAA` si IPv6) `kitcho.aliocha.xyz` → l'adresse IP publique de votre box.
+2. **Box / routeur** : redirigez les ports 80 et 443 vers la machine qui héberge Nginx Proxy Manager.
+3. **Nginx Proxy Manager** → *Hosts → Proxy Hosts → Add Proxy Host* :
+   - *Domain Names* : `kitcho.aliocha.xyz`
+   - *Scheme* : `http` · *Forward Hostname / IP* : l'adresse du NAS · *Forward Port* : `30080`
+   - cochez *Block Common Exploits*
+   - onglet *SSL* : *Request a new SSL Certificate* (Let's Encrypt), cochez *Force SSL* et *HTTP/2 Support* (et *HSTS* si vous êtes sûr de garder le HTTPS)
+4. Ouvrez https://kitcho.aliocha.xyz, créez votre compte.
+
+Le proxy doit transmettre l'en-tête `X-Forwarded-Proto: https` (Nginx Proxy Manager le fait tout seul) : Kitcho passe alors le cookie de session en `Secure`, génère des liens d'invitation en `https://` et envoie l'en-tête HSTS.
+
+**Une fois en ligne :**
+- Dans le YAML TrueNAS, mettez `ALLOW_REGISTRATION: "false"` dès que vos comptes sont créés : n'importe qui pourrait sinon s'inscrire. Les nouvelles personnes entrent alors uniquement avec un lien d'invitation.
+- N'ouvrez jamais directement le port 30080 sur Internet, et n'exposez jamais le port de la base (il n'est pas publié).
+
+## 6 bis. Installer l'application sur un téléphone
+
+Ouvrez https://kitcho.aliocha.xyz dans le navigateur, connectez-vous, puis :
+
+- **Android (Chrome)** : menu ⋮ → *Installer l'application* (ou le bouton dans *Profil → Application*). Kitcho s'ouvre en plein écran, avec son icône.
+- **iPhone / iPad (Safari)** : bouton Partager → *Sur l'écran d'accueil*.
+- **Ordinateur (Chrome, Edge)** : icône d'installation dans la barre d'adresse.
+
+L'application garde en mémoire les dernières pages consultées (liste de courses, semaine…) : elles restent lisibles sans réseau, et les coches faites hors connexion sont envoyées au retour de la connexion. Les pages gardées sont effacées à la déconnexion. En plein écran, il n'y a pas de bouton « retour » du navigateur : l'application affiche ses propres liens de retour.
 
 ## Mot de passe oublié
 

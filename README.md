@@ -6,6 +6,12 @@ Application PHP 8.1+ / MySQL (ou MariaDB), sans framework ni dépendance : on d�
 
 L'interface suit le système de design Kitcho (fond crème, basilic pour agir, tomate pour les favoris, beurre pour « aujourd'hui », titres en serif, motif vichy) : jetons et composants dans `assets/kitcho.css`, mise en page dans `assets/style.css`, guide complet dans [DESIGN.md](DESIGN.md). Mode clair et sombre automatiques, navigation par onglets en bas sur mobile, aucune ressource externe.
 
+## Application installable (PWA)
+
+Kitcho s'installe comme une vraie application : **icône sur l'écran d'accueil, plein écran** (manifeste `fullscreen`, repli `standalone`), et un **service worker** qui garde les fichiers statiques et les dernières pages consultées. Hors connexion, la liste de courses, la semaine, etc. restent lisibles, et les coches faites sans réseau sont envoyées au retour de la connexion. Les pages gardées sont effacées à la déconnexion ; une page portant un message, la connexion et les exports ne sont jamais mis en cache.
+
+Il faut servir l'application en **HTTPS** (sauf `localhost`) : voir [TRUENAS.md](TRUENAS.md), section « Publier sur Internet en HTTPS ». Le manifeste (`/manifest.webmanifest`) et le service worker (`/sw.js`) sont générés par PHP pour suivre le dossier d'installation ; les icônes sont dans `assets/icons/`.
+
 ## Fonctionnalités
 
 - **Comptes** : inscription, connexion, changement de mot de passe, limitation des tentatives de connexion, protection CSRF.

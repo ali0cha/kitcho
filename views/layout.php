@@ -13,6 +13,11 @@ $nav = [
 ];
 $isActive = fn(string $p) => str_starts_with($here, url($p)) || ($p === '/week' && $here === url('/'));
 $app = config('app.name', 'Kitcho');
+// Lu avant tout affichage : l'en-tête empêche le service worker de garder en cache une page portant un message.
+$flashList = flashes();
+if ($flashList) {
+    header('X-Kitcho-Flash: 1');
+}
 ?><!doctype html>
 <html lang="fr">
 <head>
@@ -23,11 +28,19 @@ $app = config('app.name', 'Kitcho');
     <meta name="robots" content="noindex, nofollow">
     <title><?= e(($title ?? '') !== '' ? $title . ' · ' : '') ?><?= e($app) ?></title>
     <link rel="icon" href="<?= e(asset('favicon.svg')) ?>" type="image/svg+xml">
+    <link rel="manifest" href="<?= e(url('/manifest.webmanifest')) ?>">
+    <link rel="apple-touch-icon" href="<?= e(asset('icons/apple-touch-icon.png')) ?>">
+    <meta name="application-name" content="<?= e($app) ?>">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="<?= e($app) ?>">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="format-detection" content="telephone=no">
     <link rel="stylesheet" href="<?= e(asset('kitcho.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('style.css')) ?>">
     <script src="<?= e(asset('app.js')) ?>" defer></script>
 </head>
-<body class="k-app<?= $user && $hh ? ' has-tabbar' : '' ?>" data-csrf="<?= e(csrf_token()) ?>">
+<body class="k-app<?= $user && $hh ? ' has-tabbar' : '' ?>" data-csrf="<?= e(csrf_token()) ?>" data-base="<?= e(base_path()) ?>"<?= $user ? '' : ' data-guest' ?>>
 <a class="skip-link" href="#main">Aller au contenu</a>
 
 <header class="k-topbar app-header">
@@ -69,7 +82,7 @@ $app = config('app.name', 'Kitcho');
 </header>
 
 <main class="container" id="main">
-    <?php foreach (flashes() as $f): [$cls, $ic] = banner_variant($f['type']); ?>
+    <?php foreach ($flashList as $f): [$cls, $ic] = banner_variant($f['type']); ?>
         <div class="k-banner <?= $cls ?> flash" role="<?= $f['type'] === 'error' ? 'alert' : 'status' ?>">
             <?= icon($ic) ?><div class="k-banner__body"><?= e($f['message']) ?></div>
         </div>

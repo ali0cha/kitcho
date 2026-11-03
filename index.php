@@ -2,13 +2,16 @@
 declare(strict_types=1);
 
 require __DIR__ . '/src/bootstrap.php';
-foreach (['auth', 'households', 'recipes', 'planning', 'shopping'] as $c) {
+foreach (['auth', 'households', 'recipes', 'planning', 'shopping', 'pwa'] as $c) {
     require SRC . '/controllers/' . $c . '.php';
 }
 
 // [méthodes, regex du chemin, fonction]. Les groupes capturés sont passés en arguments.
 $routes = [
     ['GET',      '#^/$#',                         'home_index'],
+    ['GET',      '#^/manifest\.webmanifest$#',   'pwa_manifest'],
+    ['GET',      '#^/sw\.js$#',                  'pwa_sw'],
+    ['GET',      '#^/offline$#',                  'pwa_offline'],
     ['GET|POST', '#^/login$#',                    'auth_login'],
     ['GET|POST', '#^/register$#',                 'auth_register'],
     ['POST',     '#^/logout$#',                   'auth_logout'],

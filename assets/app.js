@@ -56,6 +56,41 @@
         $$('details.more[open]').forEach(function (d) { if (!d.contains(e.target)) d.removeAttribute('open'); });
     });
 
+    // ------------------------------------------------------------------ application installable (PWA)
+
+    var base = document.body.getAttribute('data-base') || '';
+    if ('serviceWorker' in navigator && (window.isSecureContext || location.hostname === 'localhost')) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register(base + '/sw.js', { scope: base + '/' }).catch(function () { /* non bloquant */ });
+        });
+        // Sur une page publique (connexion…) : on efface les pages privées gardées pour le hors ligne.
+        if (document.body.hasAttribute('data-guest')) {
+            navigator.serviceWorker.ready.then(function (reg) { if (reg.active) reg.active.postMessage('clear-pages'); });
+        }
+    }
+
+    var installCard = $('[data-pwa-card]');
+    if (installCard) {
+        var installed = window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;
+        var installBtn = $('[data-pwa-install]', installCard);
+        var deferred = null;
+        $('[data-pwa-status]', installCard).hidden = !installed;
+        if (installed) { $$('[data-pwa-howto]', installCard).forEach(function (n) { n.hidden = true; }); }
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            deferred = e;
+            if (installBtn && !installed) installBtn.hidden = false;
+        });
+        if (installBtn) {
+            installBtn.addEventListener('click', function () {
+                if (!deferred) return;
+                deferred.prompt();
+                deferred.userChoice.then(function () { deferred = null; installBtn.hidden = true; });
+            });
+        }
+        window.addEventListener('appinstalled', function () { if (installBtn) installBtn.hidden = true; $('[data-pwa-status]', installCard).hidden = false; });
+    }
+
     // ------------------------------------------------------------------ recettes : filtrage pendant la frappe
 
     var filterForm = $('[data-live-filter]');

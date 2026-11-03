@@ -1,3 +1,4 @@
+<a class="k-btn k-btn--ghost k-btn--sm back-link" href="<?= e(url('/recipes')) ?>"><?= icon('left', 'sm') ?>Recettes</a>
 <div class="recipe-head">
     <?= thumb($r['category'], true) ?>
     <div class="grow">

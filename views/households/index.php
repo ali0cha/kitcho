@@ -1,3 +1,4 @@
+<a class="k-btn k-btn--ghost k-btn--sm back-link" href="<?= e(url('/household')) ?>"><?= icon('left', 'sm') ?>Foyer</a>
 <h1 class="page-title">Mes foyers</h1>
 <?php if (!$households): ?>
     <div class="k-banner" role="status"><?= icon('info') ?><div class="k-banner__body">Vous ne faites partie d'aucun foyer. Créez le vôtre, ou ouvrez un lien d'invitation que l'on vous a envoyé.</div></div>

@@ -14,7 +14,8 @@ services:
       DB_USER: kitcho
       DB_PASS: CHANGEZ-MOI
       APP_NAME: Kitcho
-      # false = on ne peut créer un compte qu'avec un lien d'invitation
+      # false = on ne peut créer un compte qu'avec un lien d'invitation.
+      # À mettre sur "false" dès que vos comptes sont créés si l'appli est publiée sur Internet.
       ALLOW_REGISTRATION: "true"
       TZ: Europe/Brussels
     ports:

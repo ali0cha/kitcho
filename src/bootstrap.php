@@ -72,7 +72,13 @@ if (PHP_SAPI !== 'cli') {
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
-    session_start();
+    // Le manifeste et le service worker n'ont pas besoin de session (et ne doivent pas poser de cookie).
+    if (!preg_match('#/(sw\.js|manifest\.webmanifest)$#', (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH))) {
+        session_start();
+    }
+    if ($https) {
+        header('Strict-Transport-Security: max-age=31536000');
+    }
 
     header('X-Frame-Options: DENY');
     header('X-Content-Type-Options: nosniff');
