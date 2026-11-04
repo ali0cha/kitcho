@@ -23,8 +23,8 @@ if ($flashList) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#FBF5EA" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#17110E" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#FFFDF8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#211915" media="(prefers-color-scheme: dark)">
     <meta name="robots" content="noindex, nofollow">
     <title><?= e(($title ?? '') !== '' ? $title . ' · ' : '') ?><?= e($app) ?></title>
     <link rel="icon" href="<?= e(asset('favicon.svg')) ?>" type="image/svg+xml">

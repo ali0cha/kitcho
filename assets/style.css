@@ -4,6 +4,7 @@
    ========================================================================== */
 
 /* ---------- Base ---------- */
+:root { --topbar-h: 61px; }   /* hauteur de l'en-tête mobile (logo + boutons de 44 px) */
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; background: var(--bg); }
 body { margin: 0; min-height: 100vh; }
@@ -64,7 +65,8 @@ body { margin: 0; min-height: 100vh; }
 .k-tabbar { display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding-left: max(6px, env(safe-area-inset-left)); padding-right: max(6px, env(safe-area-inset-right)); }
 
 @media (max-width: 799px) {
-    .k-topbar.app-header { position: static; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left)); gap: 8px; }
+    /* En-tête (logo, profil, déconnexion) toujours visible en haut de l'écran */
+    .k-topbar.app-header { position: sticky; top: 0; z-index: 25; box-sizing: border-box; min-height: var(--topbar-h); padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left)); gap: 8px; }
     .k-nav { display: none; }
     .k-tabbar { display: grid; }
     .has-tabbar { padding-bottom: 110px; }
@@ -177,7 +179,7 @@ body { margin: 0; min-height: 100vh; }
 .k-day:has(input:checked)::before { content: ""; position: absolute; top: -4px; right: -4px; width: 18px; height: 18px; z-index: 1; background: var(--on-basil); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 12.5l3.5 3.5L17 9'/%3E%3C/svg%3E") center/100% no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 12.5l3.5 3.5L17 9'/%3E%3C/svg%3E") center/100% no-repeat; }
 .k-day:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 3px; }
 .week-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin: 0 0 16px; align-items: start; }
-.k-daycard { scroll-margin-top: 80px; }
+.k-daycard { scroll-margin-top: calc(var(--topbar-h) + 20px); }
 .k-daycard__head .k-badge { margin-left: auto; }
 .k-meal { align-items: flex-start; }
 .meal-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -234,7 +236,7 @@ a.k-meal__name:hover { text-decoration: underline; }
 /* ---------- Courses ---------- */
 .shop-grid { display: grid; gap: 12px; }
 .shop-side { display: contents; }
-.shop-progress { position: sticky; top: 0; z-index: 10; background: var(--bg); padding: 10px 0; }
+.shop-progress { position: sticky; top: calc(var(--topbar-h) - 8px + max(8px, env(safe-area-inset-top))); z-index: 10; background: var(--bg); padding: 10px 0; }
 .shop-tools { display: flex; flex-wrap: wrap; gap: 8px; }
 .k-pill .pill-check { display: none; }
 .k-pill[aria-pressed="true"] .pill-check { display: inline-block; }

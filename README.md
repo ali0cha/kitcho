@@ -12,7 +12,7 @@ L'interface suit le système de design Kitcho (fond crème, basilic pour agir, t
 
 ## Application installable (PWA)
 
-Kitcho s'installe comme une vraie application : **icône sur l'écran d'accueil, plein écran** (manifeste `fullscreen`, repli `standalone`), et un **service worker** qui garde les fichiers statiques et les dernières pages consultées. Hors connexion, la liste de courses, la semaine, etc. restent lisibles, et les coches faites sans réseau sont envoyées au retour de la connexion. Les pages gardées sont effacées à la déconnexion ; une page portant un message, la connexion et les exports ne sont jamais mis en cache.
+Kitcho s'installe comme une vraie application : **icône sur l'écran d'accueil, sans barre d'adresse** (manifeste `standalone` : la barre d'état du téléphone, avec l'heure et les notifications, reste visible ; l'en-tête de l'appli reste fixé en haut), et un **service worker** qui garde les fichiers statiques et les dernières pages consultées. Hors connexion, la liste de courses, la semaine, etc. restent lisibles, et les coches faites sans réseau sont envoyées au retour de la connexion. Les pages gardées sont effacées à la déconnexion ; une page portant un message, la connexion et les exports ne sont jamais mis en cache.
 
 Il faut servir l'application en **HTTPS** (sauf `localhost`) : voir [TRUENAS.md](TRUENAS.md), section « Publier sur Internet en HTTPS ». Le manifeste (`/manifest.webmanifest`) et le service worker (`/sw.js`) sont générés par PHP pour suivre le dossier d'installation ; les icônes sont dans `assets/icons/`.
 

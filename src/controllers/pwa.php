@@ -16,10 +16,10 @@ function pwa_manifest(): void
         'dir'              => 'ltr',
         'start_url'        => url('/week', ['source' => 'pwa']),
         'scope'            => $scope,
-        'display'          => 'fullscreen',
-        'display_override' => ['fullscreen', 'standalone'],
+        // « standalone » : application sans barre d'adresse, mais la barre d'état du téléphone (heure, notifications) reste visible.
+        'display'          => 'standalone',
         'background_color' => '#FBF5EA',
-        'theme_color'      => '#FBF5EA',
+        'theme_color'      => '#FFFDF8',      // couleur de l'en-tête : la barre d'état se fond avec lui
         'categories'       => ['food', 'lifestyle'],
         'icons'            => [
             ['src' => url('/assets/icons/icon-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
