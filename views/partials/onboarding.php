@@ -1,5 +1,17 @@
 <?php /** @var array $onboarding */ $ob = $onboarding; $pct = (int) round($ob['done'] * 100 / max(1, $ob['total'])); ?>
-<section class="k-card k-card--pad onboarding<?= $ob['complete'] ? ' is-complete' : '' ?> k-noprint" aria-labelledby="ob-title" data-onboarding>
+<?php $compact = !$ob['fresh']; $next = $ob['next']; ?>
+<<?= $compact ? 'details' : 'section' ?> class="k-card onboarding<?= $compact ? ' onboarding--compact' : ' k-card--pad' ?><?= $ob['complete'] ? ' is-complete' : '' ?> k-noprint" <?= $compact ? '' : 'aria-labelledby="ob-title"' ?> data-onboarding>
+<?php if ($compact): ?>
+    <summary class="ob-line">
+        <span class="ob-line__main">
+            <span class="k-eyebrow"><?= $ob['complete'] ? 'Premiers pas terminés' : 'Premiers pas' ?></span>
+            <span class="ob-line__next"><?= $ob['complete'] ? 'Tout est prêt !' : e($next['title']) ?></span>
+        </span>
+        <span class="k-count<?= $ob['complete'] ? ' k-count--done' : '' ?>"><?= (int) $ob['done'] ?>/<?= (int) $ob['total'] ?></span>
+        <?= icon('down', 'sm') ?>
+    </summary>
+    <div class="ob-body">
+<?php endif; ?>
     <header class="ob-head">
         <div>
             <p class="k-eyebrow">Premiers pas</p>
@@ -60,4 +72,7 @@
             <?php endforeach; ?>
         </ol>
     </details>
-</section>
+<?php if ($compact): ?>
+    </div>
+<?php endif; ?>
+</<?= $compact ? 'details' : 'section' ?>>

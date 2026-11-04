@@ -143,20 +143,74 @@ function meals_add(): void
     redirect_week($date);
 }
 
+/**
+ * Libère le créneau (jour + déjeuner/dîner) en poussant d'un jour la suite ininterrompue de repas du même moment :
+ * si le mardi, le mercredi et le jeudi ont déjà un dîner, ils passent à mercredi, jeudi et vendredi ;
+ * la chaîne s'arrête au premier jour sans repas de ce moment. $keepId (le repas déplacé) n'est jamais décalé.
+ *
+ * @return int nombre de repas décalés
+ */
+function shift_meal_run(int $householdId, string $date, string $slot, int $keepId): int
+{
+    $run = [];
+    $day = parse_date($date);
+    while (count($run) < 366) {
+        $busy = (int) db_val(
+            'SELECT COUNT(*) FROM meals WHERE household_id = ? AND meal_date = ? AND slot = ? AND id <> ?',
+            [$householdId, ymd($day), $slot, $keepId]
+        );
+        if ($busy === 0) {
+            break;
+        }
+        $run[] = ymd($day);
+        $day = $day->modify('+1 day');
+    }
+    $moved = 0;
+    foreach (array_reverse($run) as $d) {          // du bout de la chaîne vers le début : jamais de collision
+        $st = db_run(
+            'UPDATE meals SET meal_date = DATE_ADD(meal_date, INTERVAL 1 DAY) WHERE household_id = ? AND meal_date = ? AND slot = ? AND id <> ?',
+            [$householdId, $d, $slot, $keepId]
+        );
+        $moved += $st->rowCount();
+    }
+    return $moved;
+}
+
 function meals_update(int $id): void
 {
     $hh = require_household();
     require_post();
     $m = load_meal($id, (int) $hh['id']);
     $date = parse_date(input_str('date')) ?? parse_date($m['meal_date']);
+    if (input_str('postpone') === '1') {            // « Reporter au lendemain » : le jour suivant celui du repas
+        $date = parse_date($m['meal_date'])->modify('+1 day');
+    }
     $slot = isset(SLOTS[input_str('slot')]) ? input_str('slot') : $m['slot'];
     $servings = input_int('servings');
     $servings = $servings !== null && $servings >= 1 && $servings <= 30 ? $servings : null;
     $notes = mb_substr(input_str('notes'), 0, 500);
-    db_run(
-        'UPDATE meals SET meal_date = ?, slot = ?, servings = ?, notes = ? WHERE id = ?',
-        [ymd($date), $slot, $servings, $notes !== '' ? $notes : null, $m['id']]
-    );
+
+    $moved = ymd($date) !== $m['meal_date'] || $slot !== $m['slot'];
+    $shifted = 0;
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        if ($moved) {
+            $shifted = shift_meal_run((int) $hh['id'], ymd($date), $slot, (int) $m['id']);
+        }
+        db_run(
+            'UPDATE meals SET meal_date = ?, slot = ?, servings = ?, notes = ? WHERE id = ?',
+            [ymd($date), $slot, $servings, $notes !== '' ? $notes : null, $m['id']]
+        );
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+    if ($moved) {
+        flash('success', 'Repas déplacé au ' . mb_strtolower(fmt_day($date)) . '.'
+            . ($shifted ? " $shifted " . plural($shifted, 'autre repas', 'autres repas') . ' du même moment ' . plural($shifted, 'a été décalé', 'ont été décalés') . " d'un jour." : ''));
+    }
     redirect_week($date);
 }
 

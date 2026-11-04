@@ -102,6 +102,20 @@
         window.addEventListener('appinstalled', function () { if (installBtn) installBtn.hidden = true; $('[data-pwa-status]', installCard).hidden = false; });
     }
 
+    // ------------------------------------------------------------------ semaine : jours écoulés repliés
+
+    function openForHash(hash) {
+        if (!hash || hash.length < 2) return;
+        var target = document.getElementById(decodeURIComponent(hash.slice(1)));
+        var past = target && target.closest('details.past-days');
+        if (past) past.open = true;
+    }
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('.week-strip a[href^="#"]');
+        if (a) openForHash(a.getAttribute('href'));
+    });
+    openForHash(window.location.hash);
+
     // ------------------------------------------------------------------ recettes : filtrage pendant la frappe
 
     var filterForm = $('[data-live-filter]');
