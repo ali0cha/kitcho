@@ -163,6 +163,29 @@
         if (start) selectDay(start.getAttribute('data-date'));
     }
 
+    // ------------------------------------------------------------------ page d'accueil : maquette vivante
+
+    var demo = $('[data-demo]');
+    if (demo && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        var demoRows = $$('[data-demo-row]', demo);
+        var demoInputs = demoRows.map(function (r) { return $('input', r); });
+        var demoStart = demoInputs.map(function (i) { return i.checked; });
+        var demoNum = $('[data-demo-done]', demo), demoFill = $('[data-demo-fill]', demo);
+        var demoPaint = function () {
+            var done = demoInputs.filter(function (i) { return i.checked; }).length;
+            demoNum.textContent = done;
+            demoFill.style.width = Math.round(done * 100 / demoInputs.length) + '%';
+        };
+        var demoWait = 0;
+        setInterval(function () {
+            if (document.hidden) return;
+            if (demoWait > 0) { demoWait--; return; }
+            var next = demoInputs.filter(function (i) { return !i.checked; })[0];
+            if (next) { next.checked = true; demoPaint(); if (demoInputs.every(function (i) { return i.checked; })) demoWait = 2; }
+            else { demoInputs.forEach(function (i, n) { i.checked = demoStart[n]; }); demoPaint(); }
+        }, 1500);
+    }
+
     // ------------------------------------------------------------------ liste de courses
 
     var shop = $('.shop');

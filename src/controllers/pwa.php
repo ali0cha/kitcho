@@ -103,7 +103,7 @@ self.addEventListener('fetch', (event) => {
 });
 
 function cacheable(rel, res) {
-    return res.ok && !res.redirected && res.type === 'basic'
+    return res.ok && !res.redirected && res.type === 'basic' && rel !== '/'
         && !res.headers.has('X-Kitcho-Flash')
         && (res.headers.get('Content-Type') || '').includes('text/html')
         && !NEVER_CACHE.some((p) => rel === p || rel.startsWith(p));

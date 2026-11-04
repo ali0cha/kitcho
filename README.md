@@ -2,6 +2,10 @@
 
 Application PHP 8.1+ / MySQL (ou MariaDB), sans framework ni dépendance : on dépose les fichiers sur l'hébergement et c'est parti.
 
+## Page d'accueil publique
+
+Un visiteur non connecté arrive sur une **page de présentation** (`/`) : accroche, maquette animée de la liste de courses, « comment ça marche » en trois temps, aperçu de la semaine, atouts, questions fréquentes et appel à l'inscription. Si `ALLOW_REGISTRATION` est à `false`, les boutons deviennent « Se connecter » et la page précise que l'inscription se fait sur invitation. Elle est indexable (métadonnées, Open Graph, image de partage `assets/og-image.png`) ; `robots.txt` ne laisse accessible que cette page. Un utilisateur connecté qui ouvre `/` est redirigé vers sa semaine.
+
 ## Design
 
 L'interface suit le système de design Kitcho (fond crème, basilic pour agir, tomate pour les favoris, beurre pour « aujourd'hui », titres en serif, motif vichy) : jetons et composants dans `assets/kitcho.css`, mise en page dans `assets/style.css`, guide complet dans [DESIGN.md](DESIGN.md). Mode clair et sombre automatiques, navigation par onglets en bas sur mobile, aucune ressource externe.

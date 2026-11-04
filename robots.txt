@@ -1,0 +1,5 @@
+# Seule la page d'accueil est publique ; le reste de l'application est privé.
+User-agent: *
+Allow: /$
+Allow: /assets/
+Disallow: /

@@ -1,9 +1,13 @@
 <?php
 declare(strict_types=1);
 
+/** Connecté : le planning. Déconnecté : la page de présentation publique (indexable). */
 function home_index(): void
 {
-    redirect(current_user() ? '/week' : '/login');
+    if (current_user()) {
+        redirect('/week');
+    }
+    render('landing', [], false);
 }
 
 function auth_login(): void
