@@ -6,6 +6,17 @@ Application PHP 8.1+ / MySQL (ou MariaDB), sans framework ni dépendance : on d�
 
 Un visiteur non connecté arrive sur une **page de présentation** (`/`) : accroche, maquette animée de la liste de courses, « comment ça marche » en trois temps, aperçu de la semaine, atouts, questions fréquentes et appel à l'inscription. Si `ALLOW_REGISTRATION` est à `false`, les boutons deviennent « Se connecter » et la page précise que l'inscription se fait sur invitation. Elle est indexable (métadonnées, Open Graph, image de partage `assets/og-image.png`) ; `robots.txt` ne laisse accessible que cette page. Un utilisateur connecté qui ouvre `/` est redirigé vers sa semaine.
 
+## Importer une recette depuis un lien
+
+*Recettes → Importer un lien* : collez l'adresse d'une recette (Marmiton, CuisineAZ, Cuisine Actuelle, Journal des Femmes, HelloFresh, blogs…). Dans l'esprit de l'import par URL de [Mealie](https://github.com/mealie-recipes/mealie), Kitcho lit les **données structurées schema.org** de la page (JSON-LD, puis microdonnées), avec un repli sur le texte de la page (titres « Ingrédients » / « Préparation ») pour les sites qui n'en ont pas. Il récupère le titre, les ingrédients, **les étapes**, les durées, les portions, la description et devine la catégorie.
+
+- **Aperçu avant enregistrement** : le formulaire s'affiche prérempli ; rien n'est ajouté tant que vous n'avez pas validé. Les avertissements (aucune étape trouvée, lecture approximative, recette déjà présente) sont affichés.
+- **Nettoyage pour le français** : entités HTML, numéros d'étapes (« 1. », « Étape 2 : »), quantités (« 1 ½ c. à soupe », « une pincée de sel », « 2 à 3 gousses d'ail », « Farine (250 g) », « feta bio 200 g »), durées ISO 8601, portions (« Pour 6 personnes »), pages en ISO-8859-1, liens sans paramètres de suivi.
+- **Recette existante avec un lien** : sa fiche propose « Récupérer depuis le lien » pour ajouter les étapes et ingrédients manquants, sans jamais écraser ce que vous avez saisi.
+- **En masse** : `php bin/enrich_recipes.php <foyer> --dry-run` (puis sans `--dry-run`) complète toutes les recettes qui ont un lien et pas d'étapes (Docker : `docker compose exec app php bin/enrich_recipes.php 1`). Pause de 2 s entre deux pages.
+- **Sécurité** : seules les adresses `http(s)` publiques (ports 80/443) sont lues ; le réseau interne, `localhost` et les adresses réservées sont refusés, y compris après redirection ; l'adresse IP vérifiée est utilisée pour la connexion, la taille (3 Mo) et la durée (25 s) sont plafonnées, et 15 imports par 10 minutes sont autorisés par session. Les photos ne sont pas copiées.
+- Limites : un site qui bloque les robots ou construit sa page en JavaScript sans données structurées ne pourra pas être lu (Kitcho le dit) ; la page d'un site en néerlandais est importée telle quelle.
+
 ## Design
 
 L'interface suit le système de design Kitcho (fond crème, basilic pour agir, tomate pour les favoris, beurre pour « aujourd'hui », titres en serif, motif vichy) : jetons et composants dans `assets/kitcho.css`, mise en page dans `assets/style.css`, guide complet dans [DESIGN.md](DESIGN.md). Mode clair et sombre automatiques, navigation par onglets en bas sur mobile, aucune ressource externe.
@@ -24,7 +35,7 @@ Il faut servir l'application en **HTTPS** (sauf `localhost`) : voir [TRUENAS.md]
 - **Foyers (« households »)** : un utilisateur peut appartenir à plusieurs foyers et basculer de l'un à l'autre. Rôles *administrateur* / *membre*.
   - **Lien d'invitation** : `…/join/<jeton>`, durée 1 j / 7 j / 30 j / illimitée, usage unique ou multiple, désactivable à tout moment. La personne invitée crée son compte (ou se connecte) et rejoint le foyer automatiquement.
   - Les administrateurs nomment/retirent des membres, renomment le foyer, règlent le nombre de portions par défaut, suppriment le foyer.
-- **Recettes** (partagées dans le foyer) : catégorie, lien, notes, portions, favori, ingrédients saisis en texte libre (`200 g pâtes`, `2 oignons`, `1/2 c. à café de sel`…). Le rayon du magasin est deviné, ou forcé avec `; Crèmerie`. La liste se **filtre pendant la frappe** (sans accents ni majuscules, plusieurs mots possibles) et se combine avec le filtre par catégorie. **Export / import** d'un fichier JSON (recettes + ingrédients) pour sauvegarder ou transférer vers une autre installation, sans doublons.
+- **Recettes** (partagées dans le foyer) : catégorie, lien, notes, portions, favori, ingrédients saisis en texte libre (`200 g pâtes`, `2 oignons`, `1/2 c. à café de sel`…). Le rayon du magasin est deviné, ou forcé avec `; Crèmerie`. La liste se **filtre pendant la frappe** (sans accents ni majuscules, plusieurs mots possibles) et se combine avec le filtre par catégorie. **Export / import** d'un fichier JSON (recettes + ingrédients) pour sauvegarder ou transférer vers une autre installation, sans doublons. **Étapes de préparation** numérotées (avec intertitres « # Pour la pâte »), temps de préparation / cuisson / total.
 - **Calendrier** : vue mois et vue semaine (déjeuner / dîner, portions par repas, notes, déplacement d'un repas à une autre date, repas « libres »).
   - **Semaine en cours** : les jours déjà écoulés sont regroupés dans un volet replié « Jours écoulés » (ouvert d'un tap, ou depuis la bande des jours), pour que le jour actuel reste en haut de l'écran. Les semaines passées ou futures s'affichent en entier.
   - **Déplacer un repas** (Modifier → date / moment, ou **Reporter au lendemain**) : si le créneau visé a déjà un repas, la suite ininterrompue de repas du même moment (déjeuner ou dîner) est décalée d'un jour, jusqu'au premier jour libre. Les repas de l'autre moment ne bougent pas.
@@ -113,6 +124,7 @@ bin/import_recipes.php, seed/recipes.json
 ## Limites connues
 
 - Connexion mémorisée **30 jours** sur l'appareil. Les sessions sont gardées dans le conteneur : après une mise à jour de l'image, il faut se reconnecter une fois (les coches non envoyées de la liste de courses sont conservées sur l'appareil et renvoyées après reconnexion).
+- La base se met à jour toute seule à l'ouverture de l'application après une mise à jour du code (empreinte du schéma mémorisée dans `.schema_ok`) ; `php bin/migrate.php` fait la même chose à la demande.
 - Pas de « mot de passe oublié » par e-mail : l'administrateur du serveur réinitialise un mot de passe avec `php bin/reset_password.php <email>` (voir TRUENAS.md pour Docker).
 - Semaine du lundi au dimanche ; la liste de courses porte sur une semaine à la fois.
 - L'historique daté de votre Excel n'est pas importé (dates à la semaine, jours inconnus, et trop ancien pour influencer la génération).

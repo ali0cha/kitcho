@@ -43,8 +43,9 @@ function recipes_show(int $id): void
     $hh = require_household();
     $r = load_recipe($id, (int) $hh['id']);
     $ings = db_all('SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY position', [$id]);
+    $steps = recipe_steps($id);
     $history = db_all('SELECT meal_date, slot FROM meals WHERE recipe_id = ? ORDER BY meal_date DESC LIMIT 8', [$id]);
-    render('recipes/show', ['title' => $r['name'], 'r' => $r, 'ings' => $ings, 'history' => $history, 'hh' => $hh]);
+    render('recipes/show', ['title' => $r['name'], 'r' => $r, 'ings' => $ings, 'steps' => $steps, 'history' => $history, 'hh' => $hh]);
 }
 
 function recipe_from_input(): array
@@ -56,6 +57,9 @@ function recipe_from_input(): array
         'url'      => ($u = safe_url(input_str('url'))) !== null ? mb_substr($u, 0, 500) : null,
         'notes'    => ($n = input_str('notes')) !== '' ? mb_substr($n, 0, 5000) : null,
         'servings' => max(1, min(30, (int) input_int('servings', 4))),
+        'prep_minutes'  => minutes_input('prep_minutes'),
+        'cook_minutes'  => minutes_input('cook_minutes'),
+        'total_minutes' => minutes_input('total_minutes'),
         'favorite' => input_str('favorite') === '1' ? 1 : 0,
         'auto_ok'  => input_str('auto_ok') === '1' ? 1 : 0,
     ];
@@ -66,14 +70,17 @@ function recipes_form(?int $id = null): void
     $hh = require_household();
     $recipe = ['name' => '', 'category' => 'autre', 'url' => '', 'notes' => '', 'servings' => $hh['default_servings'], 'favorite' => 0, 'auto_ok' => 1];
     $ingText = '';
+    $stepsText = '';
     if ($id !== null) {
         $recipe = load_recipe($id, (int) $hh['id']);
         $ingText = ingredients_to_text(db_all('SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY position', [$id]));
+        $stepsText = steps_to_text(recipe_steps($id));
     }
     if (is_post()) {
         csrf_verify();
         $data = recipe_from_input();
         $ingText = (string) ($_POST['ingredients'] ?? '');
+        $stepsText = (string) ($_POST['steps'] ?? '');
         if ($data['name'] === '') {
             flash('error', 'Le nom de la recette est obligatoire.');
             $recipe = array_merge($recipe, $data);
@@ -88,13 +95,14 @@ function recipes_form(?int $id = null): void
                 db_run("UPDATE recipes SET $set WHERE id = ? AND household_id = ?", [...array_values($data), $id, $hh['id']]);
             }
             $n = save_recipe_ingredients($id, $ingText);
-            flash('success', 'Recette enregistrée (' . $n . ' ' . plural($n, 'ingrédient', 'ingrédients') . ').');
+            $ns = save_recipe_steps($id, $stepsText);
+            flash('success', 'Recette enregistrée (' . $n . ' ' . plural($n, 'ingrédient', 'ingrédients') . ', ' . $ns . ' ' . plural($ns, 'étape', 'étapes') . ').');
             redirect('/recipes/' . $id);
         }
     }
     render('recipes/form', [
         'title' => $id ? 'Modifier la recette' : 'Nouvelle recette',
-        'recipe' => $recipe, 'ingText' => $ingText, 'id' => $id,
+        'recipe' => $recipe, 'ingText' => $ingText, 'stepsText' => $stepsText, 'id' => $id, 'action' => '', 'notice' => null,
     ]);
 }
 
@@ -163,7 +171,7 @@ function recipes_export(): void
 {
     $hh = require_household();
     $hid = (int) $hh['id'];
-    $recipes = db_all('SELECT id, name, category, url, notes, servings, favorite, auto_ok FROM recipes WHERE household_id = ? ORDER BY name', [$hid]);
+    $recipes = db_all('SELECT id, name, category, url, notes, servings, prep_minutes, cook_minutes, total_minutes, favorite, auto_ok FROM recipes WHERE household_id = ? ORDER BY name', [$hid]);
     $byRecipe = [];
     foreach (db_all(
         'SELECT i.recipe_id, i.name, i.quantity, i.unit, i.aisle FROM recipe_ingredients i
@@ -175,12 +183,23 @@ function recipes_export(): void
             'unit' => $i['unit'], 'aisle' => $i['aisle'],
         ];
     }
+    $stepsByRecipe = [];
+    foreach (db_all(
+        'SELECT s.recipe_id, s.kind, s.text FROM recipe_steps s JOIN recipes r ON r.id = s.recipe_id WHERE r.household_id = ? ORDER BY s.recipe_id, s.position, s.id',
+        [$hid]
+    ) as $st) {
+        $stepsByRecipe[$st['recipe_id']][] = ['kind' => $st['kind'], 'text' => $st['text']];
+    }
     $out = [];
     foreach ($recipes as $r) {
         $out[] = [
             'name' => $r['name'], 'category' => $r['category'], 'url' => $r['url'], 'notes' => $r['notes'],
             'servings' => (int) $r['servings'], 'favorite' => (bool) $r['favorite'], 'auto_ok' => (bool) $r['auto_ok'],
+            'prep_minutes' => $r['prep_minutes'] !== null ? (int) $r['prep_minutes'] : null,
+            'cook_minutes' => $r['cook_minutes'] !== null ? (int) $r['cook_minutes'] : null,
+            'total_minutes' => $r['total_minutes'] !== null ? (int) $r['total_minutes'] : null,
             'ingredients' => $byRecipe[$r['id']] ?? [],
+            'steps' => $stepsByRecipe[$r['id']] ?? [],
         ];
     }
     $file = 'kitcho-recettes-' . date('Y-m-d') . '.json';
@@ -237,13 +256,14 @@ function recipes_import_file(): void
     $hid = (int) $hh['id'];
     $existing = [];
     foreach (db_all(
-        'SELECT r.id, r.name, (SELECT COUNT(*) FROM recipe_ingredients i WHERE i.recipe_id = r.id) AS n FROM recipes r WHERE r.household_id = ?',
+        'SELECT r.id, r.name, (SELECT COUNT(*) FROM recipe_ingredients i WHERE i.recipe_id = r.id) AS n,
+                (SELECT COUNT(*) FROM recipe_steps s WHERE s.recipe_id = r.id) AS s FROM recipes r WHERE r.household_id = ?',
         [$hid]
     ) as $r) {
-        $existing[norm_key($r['name'])] = ['id' => (int) $r['id'], 'n' => (int) $r['n']];
+        $existing[norm_key($r['name'])] = ['id' => (int) $r['id'], 'n' => (int) $r['n'], 's' => (int) $r['s']];
     }
 
-    $added = $completed = $skipped = $ingredients = 0;
+    $added = $completed = $skipped = $ingredients = $stepsAdded = 0;
     $pdo = db();
     $pdo->beginTransaction();
     try {
@@ -254,10 +274,26 @@ function recipes_import_file(): void
             $name = mb_substr(trim($r['name']), 0, 200);
             $key = norm_key($name);
             $ings = is_array($r['ingredients'] ?? null) ? $r['ingredients'] : [];
+            $steps = sanitize_steps($r['steps'] ?? []);
             if (isset($existing[$key])) {
+                // Recette déjà présente : jamais modifiée, sauf pour la compléter (ingrédients ou étapes absents).
+                $filled = false;
                 if ($existing[$key]['n'] === 0 && $ings && ($n = insert_ingredients($existing[$key]['id'], $ings)) > 0) {
                     $existing[$key]['n'] = $n;
                     $ingredients += $n;
+                    $filled = true;
+                }
+                if ($existing[$key]['s'] === 0 && $steps) {
+                    save_recipe_steps($existing[$key]['id'], $steps);
+                    $existing[$key]['s'] = count($steps);
+                    $stepsAdded += count(array_filter($steps, fn($x) => $x['kind'] === 'step'));
+                    $filled = true;
+                }
+                if ($filled) {
+                    db_run(
+                        'UPDATE recipes SET prep_minutes = COALESCE(prep_minutes, ?), cook_minutes = COALESCE(cook_minutes, ?), total_minutes = COALESCE(total_minutes, ?) WHERE id = ?',
+                        [minutes_value($r['prep_minutes'] ?? null), minutes_value($r['cook_minutes'] ?? null), minutes_value($r['total_minutes'] ?? null), $existing[$key]['id']]
+                    );
                     $completed++;
                 } else {
                     $skipped++;
@@ -272,13 +308,20 @@ function recipes_import_file(): void
                 'url'          => is_string($r['url'] ?? null) ? mb_substr((string) safe_url($r['url']), 0, 500) ?: null : null,
                 'notes'        => is_string($r['notes'] ?? null) && trim($r['notes']) !== '' ? mb_substr($r['notes'], 0, 5000) : null,
                 'servings'     => max(1, min(30, (int) ($r['servings'] ?? $hh['default_servings']))),
+                'prep_minutes' => minutes_value($r['prep_minutes'] ?? null),
+                'cook_minutes' => minutes_value($r['cook_minutes'] ?? null),
+                'total_minutes' => minutes_value($r['total_minutes'] ?? null),
                 'favorite'     => !empty($r['favorite']) ? 1 : 0,
                 'auto_ok'      => !array_key_exists('auto_ok', $r) || !empty($r['auto_ok']) ? 1 : 0,
                 'created_by'   => current_user()['id'],
             ]);
-            $existing[$key] = ['id' => $id, 'n' => 0];
+            $existing[$key] = ['id' => $id, 'n' => 0, 's' => count($steps)];
             $existing[$key]['n'] = insert_ingredients($id, $ings);
             $ingredients += $existing[$key]['n'];
+            if ($steps) {
+                save_recipe_steps($id, $steps);
+                $stepsAdded += count(array_filter($steps, fn($x) => $x['kind'] === 'step'));
+            }
             $added++;
         }
         $pdo->commit();
@@ -287,8 +330,137 @@ function recipes_import_file(): void
         throw $e;
     }
     flash('success', "Import terminé : $added " . plural($added, 'recette ajoutée', 'recettes ajoutées')
-        . ($completed ? ", $completed " . plural($completed, 'complétée', 'complétées') . ' avec leurs ingrédients' : '')
+        . ($completed ? ", $completed " . plural($completed, 'complétée', 'complétées') . ' avec leurs ingrédients ou étapes' : '')
         . ", $ingredients " . plural($ingredients, 'ingrédient', 'ingrédients')
+        . ", $stepsAdded " . plural($stepsAdded, 'étape', 'étapes')
         . ($skipped ? ", $skipped déjà " . plural($skipped, 'présente', 'présentes') . ' (inchangée' . ($skipped > 1 ? 's' : '') . ')' : '') . '.');
     redirect('/recipes');
+}
+
+// ---------------------------------------------------------------- import depuis un lien
+
+/** 15 imports par tranche de 10 minutes et par session : évite d'utiliser Kitcho comme relais de requêtes. */
+function import_throttle(): bool
+{
+    $now = time();
+    $_SESSION['imports'] = array_values(array_filter($_SESSION['imports'] ?? [], fn($t) => $t > $now - 600));
+    if (count($_SESSION['imports']) >= 15) {
+        return false;
+    }
+    $_SESSION['imports'][] = $now;
+    return true;
+}
+
+/** Bandeau affiché au-dessus du formulaire prérempli : ce qui a été trouvé, et ce qu'il faut vérifier. */
+function import_notice(array $f, string $host, array $extra = []): array
+{
+    $c = $f['counts'];
+    $found = $c['ingredients'] . ' ' . plural($c['ingredients'], 'ingrédient', 'ingrédients') . ' et ' . $c['steps'] . ' ' . plural($c['steps'], 'étape', 'étapes');
+    $items = array_merge($extra, $f['warnings']);
+    $good = $c['ingredients'] > 0 && $c['steps'] > 0 && !$items;
+    return [
+        'class' => $good ? 'k-banner--ok' : 'k-banner--warn', 'icon' => $good ? 'check' : 'warn',
+        'title' => 'Recette lue depuis ' . $host,
+        'text' => ' ' . $found . ' trouvés. Vérifiez et corrigez si besoin, puis enregistrez : rien n\'est encore ajouté à vos recettes.',
+        'items' => $items,
+    ];
+}
+
+function recipes_import_url(): void
+{
+    $hh = require_household();
+    $hid = (int) $hh['id'];
+    $page = ['title' => 'Importer depuis un lien', 'url' => input_str('url')];
+    if (!is_post()) {
+        render('recipes/import', $page);
+        return;
+    }
+    csrf_verify();
+    if (!import_throttle()) {
+        flash('error', "Trop d'imports d'affilée : patientez quelques minutes.");
+        render('recipes/import', $page);
+        return;
+    }
+    try {
+        $fetched = import_fetch($page['url']);
+        $f = import_to_form(import_parse($fetched['html']), $fetched['url'], $hh);
+    } catch (ImportException $e) {
+        flash('error', $e->getMessage());
+        render('recipes/import', $page);
+        return;
+    }
+
+    $extra = [];
+    if ($f['recipe']['url'] && ($dup = db_one('SELECT id, name FROM recipes WHERE household_id = ? AND url = ? LIMIT 1', [$hid, $f['recipe']['url']]))) {
+        $extra[] = 'Vous avez déjà importé ce lien : « ' . $dup['name'] . ' ». Vous pouvez quand même enregistrer une copie.';
+    } elseif ($f['recipe']['name'] !== '' && ($sim = find_similar_recipe(db_all('SELECT id, name FROM recipes WHERE household_id = ?', [$hid]), $f['recipe']['name']))) {
+        $extra[] = 'Une recette proche existe déjà : « ' . $sim['recipe']['name'] . ' ».';
+    }
+    render('recipes/form', [
+        'title' => 'Vérifier la recette importée', 'recipe' => $f['recipe'], 'ingText' => $f['ingText'], 'stepsText' => $f['stepsText'],
+        'id' => null, 'action' => url('/recipes/new'), 'notice' => import_notice($f, import_host($fetched['url']), $extra),
+    ]);
+}
+
+/**
+ * « Récupérer depuis le lien » sur une recette existante : relit la page d'origine et propose ce qui manque
+ * (ingrédients, étapes, temps, description). Rien n'est écrasé et rien n'est enregistré avant validation.
+ */
+function recipes_refetch(int $id): void
+{
+    $hh = require_household();
+    require_post();
+    $r = load_recipe($id, (int) $hh['id']);
+    $url = safe_url($r['url']);
+    if (!$url) {
+        flash('error', "Cette recette n'a pas de lien à relire : ajoutez l'adresse de la recette.");
+        redirect('/recipes/' . $id . '/edit');
+    }
+    if (!import_throttle()) {
+        flash('error', "Trop d'imports d'affilée : patientez quelques minutes.");
+        redirect('/recipes/' . $id);
+    }
+    try {
+        $fetched = import_fetch($url);
+        $f = import_to_form(import_parse($fetched['html']), $fetched['url'], $hh);
+    } catch (ImportException $e) {
+        flash('error', $e->getMessage());
+        redirect('/recipes/' . $id);
+    }
+
+    $ingText = ingredients_to_text(db_all('SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY position', [$id]));
+    $stepsText = steps_to_text(recipe_steps($id));
+    $filled = [];
+    if ($ingText === '' && $f['ingText'] !== '') {
+        $ingText = $f['ingText'];
+        $filled[] = 'les ingrédients';
+    }
+    if ($stepsText === '' && $f['stepsText'] !== '') {
+        $stepsText = $f['stepsText'];
+        $filled[] = 'les étapes';
+    }
+    $timed = false;
+    foreach (['prep_minutes', 'cook_minutes', 'total_minutes'] as $col) {
+        if (empty($r[$col]) && !empty($f['recipe'][$col])) {
+            $r[$col] = $f['recipe'][$col];
+            $timed = true;
+        }
+    }
+    if ($timed) {
+        $filled[] = 'les temps';
+    }
+    if (empty($r['notes']) && !empty($f['recipe']['notes'])) {
+        $r['notes'] = $f['recipe']['notes'];
+        $filled[] = 'la description';
+    }
+    $notice = import_notice($f, import_host($fetched['url']));
+    $notice['text'] = $filled
+        ? ' Récupéré : ' . implode(', ', $filled) . '. Vos données existantes n\'ont pas été modifiées. Vérifiez, puis enregistrez.'
+        : ' Rien de plus à récupérer : cette page ne contient rien qui manque à votre recette.';
+    $notice['class'] = $filled ? 'k-banner--ok' : 'k-banner--warn';
+    $notice['icon'] = $filled ? 'check' : 'info';
+    render('recipes/form', [
+        'title' => 'Compléter la recette', 'recipe' => $r, 'ingText' => $ingText, 'stepsText' => $stepsText,
+        'id' => $id, 'action' => url('/recipes/' . $id . '/edit'), 'notice' => $notice,
+    ]);
 }

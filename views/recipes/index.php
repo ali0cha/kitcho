@@ -1,6 +1,9 @@
 <div class="page-head">
     <h1 class="page-title">Recettes <span class="k-count" data-filter-count data-total="<?= (int) $total ?>"><?= (int) $total ?></span></h1>
+    <div class="page-head__actions">
+        <a class="k-btn k-btn--secondary" href="<?= e(url('/recipes/import-url')) ?>"><?= icon('down') ?>Importer un lien</a>
     <a class="k-btn k-btn--primary" href="<?= e(url('/recipes/new')) ?>"><?= icon('plus') ?>Nouvelle recette</a>
+    </div>
 </div>
 
 <form method="get" class="filters" data-live-filter role="search">

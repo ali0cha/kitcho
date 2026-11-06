@@ -97,6 +97,18 @@ Ouvrez https://kitcho.aliocha.xyz dans le navigateur, connectez-vous, puis :
 
 L'application garde en mémoire les dernières pages consultées (liste de courses, semaine…) : elles restent lisibles sans réseau, et les coches faites hors connexion sont envoyées au retour de la connexion. Les pages gardées sont effacées à la déconnexion. En plein écran, il n'y a pas de bouton « retour » du navigateur : l'application affiche ses propres liens de retour.
 
+## Ajouter les étapes à vos recettes existantes
+
+Si vos recettes ont un lien (site de cuisine) mais pas d'étapes, une seule commande les complète depuis le *Shell* TrueNAS. Commencez par une simulation, qui n'écrit rien :
+
+```bash
+sudo docker exec -it NOM-DU-CONTENEUR-APP php bin/enrich_recipes.php          # liste les foyers et leur numéro
+sudo docker exec -it NOM-DU-CONTENEUR-APP php bin/enrich_recipes.php 1 --dry-run
+sudo docker exec -it NOM-DU-CONTENEUR-APP php bin/enrich_recipes.php 1
+```
+
+Les recettes qui ont déjà des étapes ne sont pas touchées, ce qui existe n'est jamais écrasé, et la commande peut être relancée sans risque. Le NAS doit pouvoir joindre Internet.
+
 ## Mot de passe oublié
 
 Il n'y a pas d'envoi d'e-mail : on réinitialise le mot de passe depuis le *Shell* de TrueNAS. Trouvez d'abord le nom du conteneur de l'application (`sudo docker ps | grep kitcho`, celui qui expose le port 30080), puis :

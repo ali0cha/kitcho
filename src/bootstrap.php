@@ -46,6 +46,13 @@ require SRC . '/auth.php';
 require SRC . '/ingredients.php';
 require SRC . '/planner.php';
 require SRC . '/ics.php';
+require SRC . '/schema.php';
+require SRC . '/steps.php';
+require SRC . '/recipe_import.php';
+
+if (!defined('SKIP_SCHEMA_ENSURE')) {
+    schema_ensure();
+}
 
 set_exception_handler(function (Throwable $e): void {
     error_log((string) $e);

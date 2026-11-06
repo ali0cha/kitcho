@@ -34,6 +34,8 @@ $routes = [
     ['GET',      '#^/recipes$#',                  'recipes_index'],
     ['GET|POST', '#^/recipes/new$#',              'recipes_new'],
     ['POST',     '#^/recipes/import$#',           'recipes_import'],
+    ['GET|POST', '#^/recipes/import-url$#',       'recipes_import_url'],
+    ['POST',     '#^/recipes/(\d+)/refetch$#',    'recipes_refetch'],
     ['GET',      '#^/recipes/export$#',           'recipes_export'],
     ['POST',     '#^/recipes/import-file$#',      'recipes_import_file'],
     ['GET',      '#^/recipes/(\d+)$#',            'recipes_show'],

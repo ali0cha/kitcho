@@ -60,6 +60,9 @@ CREATE TABLE IF NOT EXISTS recipes (
     url          VARCHAR(500) NULL,
     notes        TEXT NULL,
     servings     TINYINT UNSIGNED NOT NULL DEFAULT 4,
+    prep_minutes  SMALLINT UNSIGNED NULL,
+    cook_minutes  SMALLINT UNSIGNED NULL,
+    total_minutes SMALLINT UNSIGNED NULL,
     favorite     TINYINT(1) NOT NULL DEFAULT 0,
     auto_ok      TINYINT(1) NOT NULL DEFAULT 1,
     created_by   INT UNSIGNED NULL,
@@ -68,6 +71,18 @@ CREATE TABLE IF NOT EXISTS recipes (
     KEY idx_rec_hh (household_id, name),
     CONSTRAINT fk_rec_hh      FOREIGN KEY (household_id) REFERENCES households (id) ON DELETE CASCADE,
     CONSTRAINT fk_rec_creator FOREIGN KEY (created_by)   REFERENCES users (id)      ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Étapes de préparation : « step » = une étape numérotée, « heading » = un intertitre (« Pour la pâte »).
+CREATE TABLE IF NOT EXISTS recipe_steps (
+    id        INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    recipe_id INT UNSIGNED NOT NULL,
+    position  SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    kind      ENUM('step','heading') NOT NULL DEFAULT 'step',
+    text      TEXT NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_step_recipe (recipe_id, position),
+    CONSTRAINT fk_step_recipe FOREIGN KEY (recipe_id) REFERENCES recipes (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS recipe_ingredients (

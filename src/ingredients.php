@@ -216,41 +216,90 @@ function guess_aisle(string $name): string
 /** Unités reconnues : regex (début de chaîne) => forme canonique. */
 function unit_patterns(): array
 {
+    $end = "(?:\\([sx]\\))?(?=[\\s.,;:)]|$)";   // « sachet(s) », « gousse(s) »
+    $of = "(?=\\s+(?:de|du|des|d['’]))";
     return [
-        '/^(?:kg|kilos?)(?=[\s.]|$)/iu'                                   => 'kg',
-        '/^(?:g|gr|grammes?)(?=[\s.]|$)/iu'                                => 'g',
-        '/^(?:ml|millilitres?)(?=[\s.]|$)/iu'                              => 'ml',
-        '/^(?:cl|centilitres?)(?=[\s.]|$)/iu'                              => 'cl',
-        '/^(?:dl|decilitres?|décilitres?)(?=[\s.]|$)/iu'                   => 'dl',
-        '/^(?:l|litres?)(?=[\s.]|$)/iu'                                    => 'l',
-        '/^(?:cuill[eè]res?\s+à\s+soupe|c\.?\s*à\s*\.?\s*soupe|c\.?\s*à\s*\.?\s*s\.?|càs|cs)(?=[\s.]|$)/iu' => 'c. à soupe',
-        '/^(?:cuill[eè]res?\s+à\s+caf[eé]|c\.?\s*à\s*\.?\s*caf[eé]|c\.?\s*à\s*\.?\s*c\.?|càc|cc)(?=[\s.]|$)/iu' => 'c. à café',
-        '/^pinc[ée]es?(?=[\s.]|$)/iu'                                      => 'pincée',
-        '/^gousses?(?=[\s.]|$)/iu'                                         => 'gousse',
-        '/^tranches?(?=[\s.]|$)/iu'                                        => 'tranche',
-        '/^bo[iî]tes?(?=[\s.]|$)/iu'                                       => 'boîte',
-        '/^sachets?(?=[\s.]|$)/iu'                                         => 'sachet',
-        '/^pots?(?=[\s.]|$)/iu'                                            => 'pot',
-        '/^bottes?(?=[\s.]|$)/iu'                                          => 'botte',
-        '/^paquets?(?=[\s.]|$)/iu'                                         => 'paquet',
-        '/^brins?(?=[\s.]|$)/iu'                                           => 'brin',
-        '/^feuilles?(?=[\s.]|$)/iu'                                        => 'feuille',
-        '/^verres?(?=[\s.]|$)/iu'                                          => 'verre',
-        '/^tasses?(?=[\s.]|$)/iu'                                          => 'tasse',
-        '/^bouquets?(?=[\s.]|$)/iu'                                        => 'bouquet',
-        '/^barquettes?(?=[\s.]|$)/iu'                                      => 'barquette',
+        "/^(?:kg|kilos?|kilogrammes?)$end/iu"                              => 'kg',
+        "/^(?:g|gr|grs|grammes?)$end/iu"                                   => 'g',
+        "/^(?:ml|millilitres?)$end/iu"                                     => 'ml',
+        "/^(?:cl|centilitres?)$end/iu"                                     => 'cl',
+        "/^(?:dl|decilitres?|décilitres?)$end/iu"                          => 'dl',
+        "/^(?:l|litres?)$end/iu"                                           => 'l',
+        "/^(?:cuill?(?:[eè]res?|[eè]r[ée]es?)\\s+à\\s+soupe|cuill?\\.?\\s*à\\s*\\.?\\s*soupe|c\\.?\\s*à\\s*\\.?\\s*soupe|c\\.?\\s*à\\s*\\.?\\s*s\\.?|càs|cs)$end/iu" => 'c. à soupe',
+        "/^(?:cuill?(?:[eè]res?|[eè]r[ée]es?)\\s+à\\s+caf[eé]|cuill?\\.?\\s*à\\s*\\.?\\s*caf[eé]|c\\.?\\s*à\\s*\\.?\\s*caf[eé]|c\\.?\\s*à\\s*\\.?\\s*c\\.?|càc|cc)$end/iu" => 'c. à café',
+        "/^pinc[ée]es?$end/iu"                                             => 'pincée',
+        "/^gousses?$end/iu"                                                => 'gousse',
+        "/^tranches?$end/iu"                                               => 'tranche',
+        "/^bo[iî]tes?$end/iu"                                              => 'boîte',
+        "/^sachets?$end/iu"                                                => 'sachet',
+        "/^pots?$end/iu"                                                   => 'pot',
+        "/^bottes?$end/iu"                                                 => 'botte',
+        "/^paquets?$end/iu"                                                => 'paquet',
+        "/^brins?$end/iu"                                                  => 'brin',
+        "/^feuilles?$end/iu"                                               => 'feuille',
+        "/^verres?$end/iu"                                                 => 'verre',
+        "/^tasses?$end/iu"                                                 => 'tasse',
+        "/^bouquets?$end/iu"                                               => 'bouquet',
+        "/^barquettes?$end/iu"                                             => 'barquette',
+        "/^poign[ée]es?$end/iu"                                            => 'poignée',
+        "/^tiges?$end/iu"                                                  => 'tige',
+        "/^branches?$end/iu"                                               => 'branche',
+        "/^morceaux?$end/iu"                                               => 'morceau',
+        "/^b[âa]tons?$end/iu"                                              => 'bâton',
+        "/^noix$of/iu"                                                     => 'noix',
+        "/^filets?$of/iu"                                                  => 'filet',
+        "/^cubes?$of/iu"                                                   => 'cube',
     ];
 }
 
-const PLURAL_UNITS = ['pincée', 'gousse', 'tranche', 'boîte', 'sachet', 'pot', 'botte', 'paquet', 'brin', 'feuille', 'verre', 'tasse', 'bouquet', 'barquette'];
+const PLURAL_UNITS = ['pincée', 'gousse', 'tranche', 'boîte', 'sachet', 'pot', 'botte', 'paquet', 'brin', 'feuille', 'verre', 'tasse', 'bouquet', 'barquette', 'poignée', 'tige', 'branche', 'filet', 'cube', 'bâton'];
+
+/** « Farine : 250 g » ou « Farine (250 g) » → « 250 g Farine » (quantité en tête, comme sur la plupart des sites français). */
+function ingredient_quantity_first(string $line): string
+{
+    if (preg_match('/^(?<name>[^\d:()]{2,}?)\s*:\s*(?<q>\d.*)$/u', $line, $m)) {
+        return trim($m['q']) . ' ' . trim($m['name']);
+    }
+    if (preg_match('/^(?<name>[^\d(][^()]*?)\s*\((?<q>\d[\d.,\/ ½¼¾]*\s*(?:[a-zA-Zà-ÿ.]{1,12})?)\)\s*$/u', $line, $m)) {
+        return trim($m['q']) . ' ' . trim($m['name']);
+    }
+    // « feta bio 200 g », « œufs bio 3 », « aneth 1/4 bouquet » : quantité en fin de ligne.
+    if (!preg_match('/^[\d½¼¾]/u', $line) && preg_match('#^(?<name>\D.*?)\s+(?<q>\d+(?:[.,]\d+)?(?:\s*/\s*\d+)?)\s*(?<u>[a-zA-Zà-ÿ.]{1,12}(?:\s*à\s*[a-zA-Z]{1,6}\.?)?)?\s*$#u', $line, $m)) {
+        $tail = trim($m['q'] . ' ' . ($m['u'] ?? ''));
+        $probe = parse_ingredient_line_tail($tail);
+        if ($probe !== null) {
+            return $tail . ' ' . trim($m['name']);
+        }
+    }
+    return $line;
+}
+
+/** Vrai (non null) si « 200 g » / « 3 » / « 1/4 bouquet » est une quantité valide, avec une unité connue ou sans unité. */
+function parse_ingredient_line_tail(string $tail): ?bool
+{
+    if (!preg_match('#^(\d+(?:[.,]\d+)?(?:\s*/\s*\d+)?)\s*(.*)$#u', $tail, $m)) {
+        return null;
+    }
+    if (trim($m[2]) === '') {
+        return true;
+    }
+    foreach (unit_patterns() as $re => $canon) {
+        if (preg_match($re, trim($m[2]), $x) && trim(substr(trim($m[2]), strlen($x[0])), '. ') === '') {
+            return true;
+        }
+    }
+    return null;
+}
 
 /**
- * « 200 g pâtes », « 2 oignons », « 1/2 c. à café de sel ; Épicerie », « sel »
+ * « 200 g pâtes », « 2 oignons », « 1/2 c. à café de sel ; Épicerie », « sel »,
+ * « une pincée de sel », « 1 ½ c. à soupe d'huile », « 2 à 3 gousses d'ail », « Farine (250 g) ».
  * @return array{name:string, quantity:?float, unit:?string, aisle:string}|null
  */
 function parse_ingredient_line(string $line): ?array
 {
-    $line = trim(preg_replace('/^[\s\-*•·]+/u', '', $line));
+    $line = trim(preg_replace('/^[\s\-*•·–]+/u', '', $line));
+    $line = trim(preg_replace('/\s+/u', ' ', str_replace(["\u{00A0}", "\u{202F}"], ' ', $line)));
     if ($line === '') {
         return null;
     }
@@ -260,28 +309,49 @@ function parse_ingredient_line(string $line): ?array
         $aisle = match_aisle(trim($a));
         $line = trim($line);
     }
+    $line = ingredient_quantity_first($line);
+
+    $frac = ['½' => 0.5, '¼' => 0.25, '¾' => 0.75, '⅓' => 1 / 3, '⅔' => 2 / 3];
     $qty = null;
-    if (preg_match('#^(\d+)\s*/\s*(\d+)\s*#u', $line, $m) && (int) $m[2] > 0) {
+    if (preg_match('/^(?:un|une)\s+demi(?:e)?\s+/iu', $line, $m)) {
+        $qty = 0.5;
+    } elseif (preg_match('/^(?:un|une)\s+(?!peu\b|petit\b|brin\b)/iu', $line, $m)) {
+        $qty = 1.0;
+    } elseif (preg_match('/^(\d+)\s*([½¼¾⅓⅔])\s*/u', $line, $m)) {
+        $qty = (int) $m[1] + $frac[$m[2]];
+    } elseif (preg_match('#^(\d+)\s+(\d+)\s*/\s*(\d+)\s*#u', $line, $m) && (int) $m[3] > 0) {
+        $qty = (int) $m[1] + (int) $m[2] / (int) $m[3];
+    } elseif (preg_match('#^(\d+)\s*/\s*(\d+)\s*#u', $line, $m) && (int) $m[2] > 0) {
         $qty = (int) $m[1] / (int) $m[2];
-        $line = substr($line, strlen($m[0]));
     } elseif (preg_match('/^(\d+(?:[.,]\d+)?)\s*/u', $line, $m)) {
         $qty = (float) str_replace(',', '.', $m[1]);
-        $line = substr($line, strlen($m[0]));
-    } elseif (preg_match('/^([½¼¾])\s*/u', $line, $m)) {
-        $qty = ['½' => 0.5, '¼' => 0.25, '¾' => 0.75][$m[1]];
+    } elseif (preg_match('/^([½¼¾⅓⅔])\s*/u', $line, $m)) {
+        $qty = $frac[$m[1]];
+    }
+    if ($qty !== null) {
         $line = substr($line, strlen($m[0]));
     }
+    // Fourchette (« 2 à 3 », « 2-3 ») : on retient la borne haute, plus sûre pour les courses.
+    $range = function () use (&$line, &$qty): void {
+        if ($qty !== null && preg_match('/^(?:-|–|à|ou)\s*(\d+(?:[.,]\d+)?)\s*/iu', $line, $r)) {
+            $qty = max($qty, (float) str_replace(',', '.', $r[1]));
+            $line = substr($line, strlen($r[0]));
+        }
+    };
+    $range();
     $unit = null;
     if ($qty !== null) {
         foreach (unit_patterns() as $re => $canon) {
             if (preg_match($re, $line, $m)) {
                 $unit = $canon;
                 $line = ltrim(substr($line, strlen($m[0])), ". \t");
+                $range();
                 break;
             }
         }
     }
     $line = trim(preg_replace("/^(?:de la |de l'|de l’|d'|d’|du |des |de )/iu", '', trim($line)));
+    $line = rtrim($line, " .;,");
     $line = mb_substr($line, 0, 150);
     if ($line === '') {
         return null;
@@ -311,7 +381,7 @@ function ingredients_to_text(array $rows): string
             $parts[] = format_qty((float) $r['quantity']);
         }
         if ($r['unit']) {
-            $parts[] = $r['unit'];
+            $parts[] = unit_label($r['unit'], $r['quantity'] !== null ? (float) $r['quantity'] : null);
         }
         $parts[] = $r['name'];
         $lines[] = implode(' ', $parts) . ($r['aisle'] ? ' ; ' . $r['aisle'] : '');
@@ -332,6 +402,9 @@ function unit_label(?string $unit, ?float $qty): string
 {
     if (!$unit) {
         return '';
+    }
+    if ($unit === 'morceau') {
+        return ($qty !== null && $qty > 1) ? 'morceaux' : $unit;
     }
     return ($qty !== null && $qty > 1 && in_array($unit, PLURAL_UNITS, true)) ? $unit . 's' : $unit;
 }

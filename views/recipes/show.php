@@ -6,6 +6,11 @@
         <p class="recipe-head__meta">
             <?= cat_badge($r['category']) ?>
             <span class="k-muted"><?= icon('user', 'sm') ?> pour <?= (int) $r['servings'] ?> <?= plural((int) $r['servings'], 'portion', 'portions') ?></span>
+            <?php $total = recipe_total_minutes($r); ?>
+            <?php if (!empty($r['prep_minutes'])): ?><span class="k-muted">Préparation <b><?= e(format_minutes((int) $r['prep_minutes'])) ?></b></span><?php endif; ?>
+            <?php if (!empty($r['cook_minutes'])): ?><span class="k-muted">Cuisson <b><?= e(format_minutes((int) $r['cook_minutes'])) ?></b></span><?php endif; ?>
+            <?php $given = array_filter([(int) ($r['prep_minutes'] ?? 0), (int) ($r['cook_minutes'] ?? 0)]); ?>
+            <?php if ($total && (count($given) !== 1 || $total !== (int) reset($given))): ?><span class="k-muted">Total <b><?= e(format_minutes($total)) ?></b></span><?php endif; ?>
             <?php if ($u = safe_url($r['url'])): ?><a href="<?= e($u) ?>" target="_blank" rel="noopener noreferrer">Voir la recette <?= icon('external', 'sm') ?></a><?php endif; ?>
         </p>
     </div>
@@ -17,7 +22,8 @@
     </div>
 </div>
 
-<div class="grid-2">
+<div class="recipe-cols">
+<div class="recipe-main">
 <section class="k-card k-card--pad">
     <h2>Ingrédients</h2>
     <?php if ($ings): ?>
@@ -35,8 +41,32 @@
                 <a href="<?= e(url('/recipes/' . (int) $r['id'] . '/edit')) ?>">Ajouter des ingrédients</a></div>
         </div>
     <?php endif; ?>
+</section>
+
+<section class="k-card k-card--pad recipe-steps" id="preparation">
+    <h2>Préparation</h2>
+    <?php if ($steps): $n = 0; ?>
+        <ol class="plain steps-list">
+            <?php foreach ($steps as $st): ?>
+                <?php if ($st['kind'] === 'heading'): ?>
+                    <li class="steps-heading"><h3><?= e($st['text']) ?></h3></li>
+                <?php else: $n++; ?>
+                    <li class="steps-item"><span class="steps-n" aria-hidden="true"><?= $n ?></span><p class="pre"><?= e($st['text']) ?></p></li>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </ol>
+    <?php else: ?>
+        <div class="k-muted steps-empty">Aucune étape pour le moment.
+            <?php if (safe_url($r['url'])): ?>
+                <form method="post" action="<?= e(url('/recipes/' . (int) $r['id'] . '/refetch')) ?>" class="inline">
+                    <?= csrf_field() ?><button class="k-btn k-btn--secondary k-btn--sm"><?= icon('down', 'sm') ?>Récupérer depuis le lien</button>
+                </form>
+            <?php endif; ?>
+            <a href="<?= e(url('/recipes/' . (int) $r['id'] . '/edit') . '#r-steps') ?>">Écrire les étapes</a></div>
+    <?php endif; ?>
     <?php if ($r['notes']): ?><h3>Notes</h3><p class="pre"><?= e($r['notes']) ?></p><?php endif; ?>
 </section>
+</div>
 
 <section class="k-card k-card--pad">
     <h2>Planifier</h2>

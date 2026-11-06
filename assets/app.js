@@ -16,6 +16,23 @@
         }
     });
 
+    // Bouton long (lecture d'une page web…) : <button data-busy="Texte pendant l'attente">
+    document.addEventListener('submit', function (e) {
+        var b = e.target.querySelector && e.target.querySelector('button[data-busy]');
+        if (b && !e.defaultPrevented) {
+            b.setAttribute('data-label', b.innerHTML);
+            setTimeout(function () { b.disabled = true; b.textContent = b.getAttribute('data-busy'); }, 0);
+        }
+    });
+    // Retour arrière du navigateur : le bouton redevient utilisable.
+    window.addEventListener('pageshow', function (e) {
+        if (!e.persisted) return;
+        Array.prototype.slice.call(document.querySelectorAll('button[data-label]')).forEach(function (b) {
+            b.disabled = false;
+            b.innerHTML = b.getAttribute('data-label');
+        });
+    });
+
     // Soumission automatique : <select data-autosubmit>
     document.addEventListener('change', function (e) {
         if (e.target.hasAttribute && e.target.hasAttribute('data-autosubmit') && e.target.form) {
