@@ -49,7 +49,7 @@ function pwa_sw(): void
 {
     $base = base_path();
     $scope = $base === '' ? '/' : $base . '/';
-    $static = array_map('asset', ['kitcho.css', 'style.css', 'app.js', 'favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png']);
+    $static = array_map('asset', ['kitcho.css', 'style.css', 'app.js', 'scale.js', 'favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png']);
     $offline = url('/offline');
     $version = substr(sha1(implode('|', $static) . '|v1'), 0, 10);
     $cfg = json_encode([

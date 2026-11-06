@@ -26,15 +26,29 @@
 <div class="recipe-main">
 <section class="k-card k-card--pad">
     <h2>Ingrédients</h2>
-    <?php if ($ings): ?>
-        <ul class="plain ing-list">
+    <?php if ($ings):
+        $homeServings = (int) $hh['default_servings'];
+        $factor = $people / $baseServings;
+        $scaleHref = fn(int $n) => url('/recipes/' . (int) $r['id'], $n === $homeServings ? [] : ['p' => $n]);
+    ?>
+        <div class="scaler" data-scaler data-base="<?= $baseServings ?>" data-default="<?= $homeServings ?>" data-current="<?= $people ?>">
+            <span class="k-label" id="scaler-label">Pour</span>
+            <a class="k-iconbtn k-iconbtn--tint scaler__btn<?= $people <= 1 ? ' is-disabled' : '' ?>" data-scale-minus href="<?= e($scaleHref(max(1, $people - 1))) ?>" aria-label="Une personne de moins">−</a>
+            <input class="k-input scaler__input" type="number" inputmode="numeric" min="1" max="30" value="<?= $people ?>" data-scale-input aria-labelledby="scaler-label" aria-describedby="scaler-live">
+            <a class="k-iconbtn k-iconbtn--tint scaler__btn<?= $people >= 30 ? ' is-disabled' : '' ?>" data-scale-plus href="<?= e($scaleHref(min(30, $people + 1))) ?>" aria-label="Une personne de plus"><?= icon('plus') ?></a>
+            <span class="k-label" data-scale-word><?= $people > 1 ? 'personnes' : 'personne' ?></span>
+            <a class="scaler__reset" data-scale-reset href="<?= e($scaleHref($baseServings)) ?>" <?= $people === $baseServings ? 'hidden' : '' ?>>Recette d'origine : <?= $baseServings ?></a>
+            <span class="sr-only" id="scaler-live" role="status" aria-live="polite" data-scale-live></span>
+        </div>
+        <ul class="plain ing-list" data-scaler-scope>
             <?php foreach ($ings as $i): $q = $i['quantity'] !== null ? (float) $i['quantity'] : null; ?>
-                <li>
-                    <span><?php if ($q !== null): ?><b class="k-qty"><?= e(trim(format_qty($q) . ' ' . unit_label($i['unit'], $q))) ?></b><?php endif; ?><?= e($i['name']) ?></span>
+                <li<?= $q !== null ? ' data-qty="' . e((string) $q) . '" data-unit="' . e((string) ($i['unit'] ?? '')) . '"' : '' ?>>
+                    <span><?php if ($q !== null): ?><b class="k-qty" data-qty-text><?= e(scale_quantity($q * $factor, $i['unit'] ?: null)) ?></b><?php endif; ?><?= e($i['name']) ?></span>
                     <span class="k-meta"><?= icon(aisle_icon((string) $i['aisle']), 'sm') ?> <?= e($i['aisle'] ?? '') ?></span>
                 </li>
             <?php endforeach; ?>
         </ul>
+        <script src="<?= e(asset('scale.js')) ?>" defer></script>
     <?php else: ?>
         <div class="k-banner k-banner--warn" role="status">
             <?= icon('warn') ?><div class="k-banner__body"><b>Aucun ingrédient</b>Ce plat n'apparaîtra pas dans la liste de courses.
@@ -76,7 +90,7 @@
         <div class="row-form">
             <div class="k-field grow"><label class="k-label" for="pl-slot">Repas</label>
                 <span class="k-selectwrap"><select class="k-select" id="pl-slot" name="slot"><?php foreach (SLOTS as $k => $l): ?><option value="<?= $k ?>" <?= $k === 'dinner' ? 'selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select><?= icon('down', 'sm') ?></span></div>
-            <div class="k-field"><label class="k-label" for="pl-pers">Personnes</label><input class="k-input" id="pl-pers" type="number" name="servings" min="1" max="30" placeholder="<?= (int) $hh['default_servings'] ?>"></div>
+            <div class="k-field"><label class="k-label" for="pl-pers">Personnes</label><input class="k-input" id="pl-pers" type="number" name="servings" min="1" max="30" value="<?= isset($people) && $people !== (int) $hh['default_servings'] ? (int) $people : '' ?>" placeholder="<?= (int) $hh['default_servings'] ?>"></div>
         </div>
         <button class="k-btn k-btn--primary"><?= icon('plus') ?>Ajouter au calendrier</button>
     </form>

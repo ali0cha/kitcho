@@ -45,7 +45,13 @@ function recipes_show(int $id): void
     $ings = db_all('SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY position', [$id]);
     $steps = recipe_steps($id);
     $history = db_all('SELECT meal_date, slot FROM meals WHERE recipe_id = ? ORDER BY meal_date DESC LIMIT 8', [$id]);
-    render('recipes/show', ['title' => $r['name'], 'r' => $r, 'ings' => $ings, 'steps' => $steps, 'history' => $history, 'hh' => $hh]);
+    // Nombre de personnes affiché : ?p=N, sinon celui du foyer. Les quantités sont recalculées par rapport aux portions de la recette.
+    $people = input_int('p');
+    $people = $people !== null && $people >= 1 && $people <= 30 ? $people : (int) $hh['default_servings'];
+    render('recipes/show', [
+        'title' => $r['name'], 'r' => $r, 'ings' => $ings, 'steps' => $steps, 'history' => $history, 'hh' => $hh,
+        'people' => $people, 'baseServings' => max(1, (int) $r['servings']),
+    ]);
 }
 
 function recipe_from_input(): array

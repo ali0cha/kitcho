@@ -576,3 +576,93 @@ function strtoupper_fr(string $s): string
 {
     return mb_strtoupper($s);
 }
+
+// ---------------------------------------------------------------- quantités adaptées au nombre de personnes
+// Même algorithme que assets/scale.js (affichage initial côté serveur, puis boutons − / + côté navigateur).
+
+/** Arrondi « moitié vers le haut » stable (126,49999999999999 → 126,5 → 127), identique à rnd() dans assets/scale.js. */
+function round_stable(float $x, int $places = 0): float
+{
+    $m = 10 ** $places;
+    return round((float) sprintf('%.15g', $x * $m)) / $m;
+}
+
+/**
+ * Fraction lisible : « ½ », « 1 ¼ », « ⅓ », « 12 ».
+ * @return array{0: string, 1: float} [texte, valeur affichée]
+ */
+function fraction_text(float $q): array
+{
+    if ($q >= 10) {
+        $n = (int) round_stable($q);
+        return [(string) $n, (float) $n];
+    }
+    $whole = (int) floor($q);
+    $frac = $q - $whole;
+    $candidates = [[0.0, ''], [1 / 4, '¼'], [1 / 3, '⅓'], [1 / 2, '½'], [2 / 3, '⅔'], [3 / 4, '¾'], [1.0, '']];
+    if ($whole === 0) {
+        array_splice($candidates, 1, 0, [[1 / 8, '⅛']]);        // « ⅛ » seulement pour de très petites quantités
+    }
+    $best = $candidates[0];
+    foreach ($candidates as $c) {
+        if (abs($frac - $c[0]) < abs($frac - $best[0]) - 1e-9) {
+            $best = $c;
+        }
+    }
+    [$value, $glyph] = $best;
+    if ($value >= 1.0) {
+        $whole++;
+        $value = 0.0;
+        $glyph = '';
+    }
+    if ($whole === 0 && $glyph === '') {                          // quantité minuscule : jamais « 0 »
+        $value = 1 / 8;
+        $glyph = '⅛';
+    }
+    $text = ($whole > 0 ? (string) $whole : '') . ($glyph !== '' ? ($whole > 0 ? ' ' : '') . $glyph : '');
+    return [$text, $whole + $value];
+}
+
+/** Nombre décimal français sans zéros inutiles : 1,5 · 250 · 0,25. */
+function decimal_text(float $n): string
+{
+    $n = round_stable($n, 2);
+    if (abs($n - round($n)) < 0.005) {
+        return (string) (int) round($n);
+    }
+    return rtrim(rtrim(number_format($n, 2, ',', ''), '0'), ',');
+}
+
+/**
+ * Quantité + unité mises à l'échelle, prêtes à afficher : « 1 ½ gousses », « 1,5 kg », « 250 ml », « ½ ».
+ * Les poids et volumes sont convertis (1 500 g → 1,5 kg ; 0,5 kg → 500 g), les autres quantités sont arrondies
+ * aux fractions usuelles (¼, ⅓, ½, ⅔, ¾) et l'unité prend le pluriel.
+ */
+function scale_quantity(float $q, ?string $unit): string
+{
+    if ($unit === 'kg' && $q < 1) {
+        [$q, $unit] = [$q * 1000, 'g'];
+    } elseif ($unit === 'l' && $q < 1) {
+        [$q, $unit] = [$q * 1000, 'ml'];
+    }
+    if ($unit === 'g' && $q >= 1000) {
+        [$q, $unit] = [$q / 1000, 'kg'];
+    } elseif ($unit === 'ml' && $q >= 1000) {
+        [$q, $unit] = [$q / 1000, 'l'];
+    } elseif ($unit === 'cl' && $q >= 100) {
+        [$q, $unit] = [$q / 100, 'l'];
+    } elseif ($unit === 'dl' && $q >= 10) {
+        [$q, $unit] = [$q / 10, 'l'];
+    }
+    if ($unit === 'g' || $unit === 'ml') {
+        $text = decimal_text($q >= 10 ? round_stable($q) : round_stable($q, 1));
+        $shown = (float) str_replace(',', '.', $text);
+    } elseif (in_array($unit, ['kg', 'l', 'cl', 'dl'], true)) {
+        $text = decimal_text($q >= 10 ? round_stable($q) : round_stable($q, 2));
+        $shown = (float) str_replace(',', '.', $text);
+    } else {
+        [$text, $shown] = fraction_text($q);
+    }
+    $label = unit_label($unit, $shown);
+    return $label !== '' ? $text . ' ' . $label : $text;
+}
