@@ -1,14 +1,31 @@
 <?php
-/** Carte d'un jour de la semaine. Attend : $d (DateTimeImmutable), $byDate, $todayStr, $hh. */
+/** Carte d'un jour de la semaine. Attend : $d (DateTimeImmutable), $byDate, $todayStr, $hh, $monday ; $swap (jour de départ d'un échange) et $swapped (jours à faire ressortir). */
 $ds = ymd($d);
 $dayMeals = $byDate[$ds] ?? [];
 $isToday = $ds === $todayStr;
+$swapping = !empty($swap);
+$isSource = $swapping && $ds === $swap;
+$isTarget = $swapping && !$isSource;
+$justSwapped = in_array($ds, $swapped ?? [], true);
 ?>
-    <section class="k-daycard<?= $isToday ? ' is-today' : '' ?>" id="d-<?= e($ds) ?>">
-        <header class="k-daycard__head">
+    <section class="k-daycard<?= $isToday ? ' is-today' : '' ?><?= $isSource ? ' is-swap-source' : '' ?><?= $isTarget ? ' is-swap-target' : '' ?><?= $justSwapped ? ' just-swapped' : '' ?>" id="d-<?= e($ds) ?>" data-day="<?= e($ds) ?>">
+        <header class="k-daycard__head" data-day-handle>
             <h2 class="k-daycard__name"><?= e(ucfirst(day_name($d))) ?> <span class="k-muted"><?= e($d->format('j')) ?> <?= e(month_abbr($d)) ?></span></h2>
             <?php if ($isToday): ?><span class="k-badge k-badge--today">Aujourd'hui</span><?php endif; ?>
+            <?php if (!$swapping): ?>
+                <a class="swap-btn k-noprint" href="<?= e(url('/week', ['d' => ymd($monday), 'swap' => $ds]) . '#d-' . $ds) ?>" title="Intervertir les repas de ce jour avec ceux d'un autre jour"><?= icon('swap', 'sm') ?><span>Échanger</span></a>
+            <?php endif; ?>
         </header>
+        <?php if ($isTarget): ?>
+            <form method="post" action="<?= e(url('/days/swap')) ?>" class="swap-target k-noprint">
+                <?= csrf_field() ?><input type="hidden" name="d" value="<?= e(ymd($monday)) ?>">
+                <input type="hidden" name="a" value="<?= e($swap) ?>"><input type="hidden" name="b" value="<?= e($ds) ?>">
+                <button class="swap-target__btn"><?= icon('swap') ?>
+                    <span>Échanger avec <b><?= e(fmt_day(parse_date($swap))) ?></b></span>
+                    <small><?= count($dayMeals) ? count($dayMeals) . ' ' . plural(count($dayMeals), 'repas', 'repas') . ' ici' : 'jour vide' ?> · <?= count($byDate[$swap] ?? []) ?> <?= plural(count($byDate[$swap] ?? []), 'repas', 'repas') ?> là-bas</small>
+                </button>
+            </form>
+        <?php endif; ?>
 
         <?php foreach ($dayMeals as $m): $name = $m['recipe_name'] ?? $m['label']; ?>
             <article class="k-meal">

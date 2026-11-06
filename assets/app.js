@@ -175,6 +175,47 @@
         }
     }
 
+    // ------------------------------------------------------------------ semaine : glisser un jour sur un autre pour intervertir (souris ; le bouton « Échanger » couvre le tactile)
+
+    var swapForm = $('#swap-form');
+    if (swapForm && !$('.is-swap-source') && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        var dragged = null;
+        $$('.k-daycard[data-day]').forEach(function (card) {
+            var handle = $('[data-day-handle]', card);
+            if (!handle) return;
+            handle.setAttribute('draggable', 'true');
+            handle.setAttribute('title', 'Glissez ce jour sur un autre pour intervertir leurs repas');
+            handle.addEventListener('dragstart', function (e) {
+                dragged = card;
+                card.classList.add('is-dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                try { e.dataTransfer.setData('text/plain', card.getAttribute('data-day')); } catch (err) { /* Safari */ }
+                try { e.dataTransfer.setDragImage(card, 24, 24); } catch (err) { /* facultatif */ }
+            });
+            handle.addEventListener('dragend', function () {
+                card.classList.remove('is-dragging');
+                $$('.is-drop').forEach(function (c) { c.classList.remove('is-drop'); });
+                dragged = null;
+            });
+            card.addEventListener('dragover', function (e) {
+                if (!dragged || dragged === card) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                card.classList.add('is-drop');
+            });
+            card.addEventListener('dragleave', function (e) {
+                if (!card.contains(e.relatedTarget)) card.classList.remove('is-drop');
+            });
+            card.addEventListener('drop', function (e) {
+                if (!dragged || dragged === card) return;
+                e.preventDefault();
+                swapForm.elements.a.value = dragged.getAttribute('data-day');
+                swapForm.elements.b.value = card.getAttribute('data-day');
+                swapForm.submit();
+            });
+        });
+    }
+
     // ------------------------------------------------------------------ calendrier : détail du jour sur mobile
 
     var cal = $('[data-cal]');

@@ -72,11 +72,25 @@ $isCurrentWeek = ymd($monday) === ymd(monday_of(today()));
 $pastDays = $isCurrentWeek ? array_values(array_filter($days, fn($x) => ymd($x) < $todayStr)) : [];
 $upcoming = array_values(array_filter($days, fn($x) => !$pastDays || ymd($x) >= $todayStr));
 ?>
-<div class="week-grid">
+<?php if (!empty($swap)):
+    $swapDay = parse_date($swap);
+    $swapMeals = $byDate[$swap] ?? [];
+?>
+<div class="swap-bar k-noprint" role="status" id="swap-bar">
+    <?= icon('swap') ?>
+    <div class="swap-bar__text">
+        <b>Échanger <?= e(fmt_day($swapDay)) ?> avec…</b>
+        <span><?= $swapMeals ? e(implode(' · ', array_map(fn($m) => $m['recipe_name'] ?? $m['label'], $swapMeals))) : 'Aucun repas ce jour-là' ?></span>
+        <small>Touchez « Échanger avec… » sur le jour voulu.</small>
+    </div>
+    <a class="k-btn k-btn--ghost k-btn--sm" href="<?= e(url('/week', ['d' => ymd($monday)])) ?>">Annuler</a>
+</div>
+<?php endif; ?>
+<div class="week-grid<?= !empty($swap) ? ' is-swapping' : '' ?>">
 <?php if ($pastDays):
     $pastMeals = array_sum(array_map(fn($x) => count($byDate[ymd($x)] ?? []), $pastDays));
 ?>
-    <details class="k-details past-days" id="passes">
+    <details class="k-details past-days" id="passes"<?= !empty($swap) && $swap < $todayStr ? ' open' : '' ?>>
         <summary><?= icon('week') ?>Jours écoulés
             <span class="k-meta"><?= count($pastDays) ?> <?= plural(count($pastDays), 'jour', 'jours') ?> · <?= (int) $pastMeals ?> <?= plural((int) $pastMeals, 'repas', 'repas') ?></span><?= icon('down') ?></summary>
         <div class="k-details__body">
@@ -88,6 +102,11 @@ $upcoming = array_values(array_filter($days, fn($x) => !$pastDays || ymd($x) >= 
 <?php endif; ?>
 <?php foreach ($upcoming as $d) { require ROOT . '/views/partials/day_card.php'; } ?>
 </div>
+
+<form method="post" action="<?= e(url('/days/swap')) ?>" id="swap-form" class="sr-only" hidden>
+    <?= csrf_field() ?><input type="hidden" name="d" value="<?= e(ymd($monday)) ?>">
+    <input type="hidden" name="a" value=""><input type="hidden" name="b" value="">
+</form>
 
 <section class="k-card k-card--pad week-tools k-noprint">
     <h2>Outils de la semaine</h2>

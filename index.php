@@ -55,6 +55,7 @@ $routes = [
     ['POST', '#^/meals/(\d+)/update$#',           'meals_update'],
     ['POST', '#^/meals/(\d+)/delete$#',           'meals_delete'],
     ['POST', '#^/meals/(\d+)/reroll$#',           'meals_reroll'],
+    ['POST', '#^/days/swap$#',                    'days_swap'],
     ['POST', '#^/week/generate$#',                'week_generate'],
     ['POST', '#^/week/copy$#',                    'week_copy'],
     ['POST', '#^/week/clear$#',                   'week_clear'],

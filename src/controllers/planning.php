@@ -45,7 +45,20 @@ function planning_week(): void
     }
     $share = db_one('SELECT * FROM share_links WHERE household_id = ? AND week_start = ? ORDER BY id DESC LIMIT 1', [$hid, ymd($monday)]);
 
+    // Mode « Échanger » : ?swap=AAAA-MM-JJ désigne le jour de départ (il doit faire partie de la semaine affichée).
+    $swap = parse_date(input_str('swap'));
+    $swap = $swap && ymd(monday_of($swap)) === ymd($monday) ? ymd($swap) : null;
+    // Juste après un échange : ?sw=a,b fait ressortir brièvement les deux jours.
+    $swapped = [];
+    foreach (explode(',', input_str('sw')) as $x) {
+        if ($dx = parse_date($x)) {
+            $swapped[] = ymd($dx);
+        }
+    }
+
     render('planning/week', [
+        'swap'     => $swap,
+        'swapped'  => $swapped,
         'onboarding' => onboarding_card($hh, current_user()),
         'title'    => 'Semaine du ' . $monday->format('j') . ' ' . month_name($monday),
         'hh'       => $hh,
@@ -241,6 +254,33 @@ function meals_reroll(int $id): void
         db_run('UPDATE meals SET recipe_id = ?, label = NULL WHERE id = ?', [$pick[0]['id'], $m['id']]);
     }
     redirect_week($m['meal_date']);
+}
+
+/** Intervertit tous les repas de deux jours (un jour vide « reçoit » simplement les repas de l'autre). */
+function days_swap(): void
+{
+    $hh = require_household();
+    require_post();
+    $a = parse_date(input_str('a'));
+    $b = parse_date(input_str('b'));
+    $back = parse_date(input_str('d')) ?? $a ?? today();
+    if (!$a || !$b || ymd($a) === ymd($b)) {
+        flash('error', 'Choisissez deux jours différents à intervertir.');
+        redirect_week($back);
+    }
+    $st = db_run(
+        'UPDATE meals SET meal_date = IF(meal_date = ?, ?, ?) WHERE household_id = ? AND meal_date IN (?, ?)',
+        [ymd($a), ymd($b), ymd($a), $hh['id'], ymd($a), ymd($b)]
+    );
+    $n = $st->rowCount();
+    $names = fmt_day($a) . ' et ' . mb_strtolower(fmt_day($b));
+    if ($n) {
+        flash('success', "$names intervertis (" . $n . ' ' . plural($n, 'repas', 'repas') . ' déplacés).');
+    } else {
+        flash('info', "Rien à intervertir : $names n'ont aucun repas.");
+    }
+    header('Location: ' . url('/week', ['d' => ymd(monday_of($back)), 'sw' => ymd($a) . ',' . ymd($b)]) . '#d-' . ymd($b));
+    exit;
 }
 
 // ---------------------------------------------------------------- semaine entière
