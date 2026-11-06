@@ -139,6 +139,7 @@
     if (filterForm) {
         var input = $('[data-filter-input]', filterForm);
         var catSel = $('[data-filter-cat]', filterForm);
+        var seasonBox = $('[data-filter-season]', filterForm);
         var rows = $$('[data-filter-row]');
         var countEl = $('[data-filter-count]');
         var emptyEl = $('[data-filter-empty]');
@@ -148,28 +149,31 @@
         var applyFilter = function () {
             var words = fold(input.value).split(' ').filter(Boolean);
             var cat = catSel.value;
+            var seasonOn = !!(seasonBox && seasonBox.checked);
             var shown = 0;
             rows.forEach(function (tr) {
                 var name = tr.getAttribute('data-name');
-                var ok = (!cat || tr.getAttribute('data-cat') === cat) && words.every(function (w) { return name.indexOf(w) !== -1; });
+                var ok = (!cat || tr.getAttribute('data-cat') === cat) && (!seasonOn || tr.getAttribute('data-season') === 'in') && words.every(function (w) { return name.indexOf(w) !== -1; });
                 tr.hidden = !ok;
                 if (ok) shown++;
             });
             if (countEl) {
                 var total = countEl.getAttribute('data-total');
-                countEl.textContent = (words.length || cat) ? shown + ' / ' + total : total;
+                countEl.textContent = (words.length || cat || seasonOn) ? shown + ' / ' + total : total;
             }
             if (emptyEl) emptyEl.hidden = shown > 0 || !rows.length;
             if (window.history && history.replaceState) {
                 var u = new URL(window.location.href);
                 if (input.value.trim()) u.searchParams.set('q', input.value.trim()); else u.searchParams.delete('q');
                 if (cat) u.searchParams.set('cat', cat); else u.searchParams.delete('cat');
+                if (seasonOn) u.searchParams.set('saison', '1'); else u.searchParams.delete('saison');
                 history.replaceState(null, '', u);
             }
         };
         if (rows.length) {
             input.addEventListener('input', applyFilter);
             catSel.addEventListener('change', applyFilter);
+            if (seasonBox) seasonBox.addEventListener('change', applyFilter);
             filterForm.addEventListener('submit', function (e) { e.preventDefault(); });
             applyFilter();
         }

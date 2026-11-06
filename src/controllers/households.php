@@ -68,7 +68,7 @@ function hh_update(): void
     if ($name === '' || mb_strlen($name) > 100 || $servings < 1 || $servings > 30) {
         flash('error', 'Nom ou nombre de portions invalide.');
     } else {
-        db_run('UPDATE households SET name = ?, default_servings = ? WHERE id = ?', [$name, $servings, $hh['id']]);
+        db_run('UPDATE households SET name = ?, default_servings = ?, seasonal_pref = ? WHERE id = ?', [$name, $servings, input_str('seasonal_pref') === '1' ? 1 : 0, $hh['id']]);
         flash('success', 'Foyer mis à jour.');
     }
     redirect('/household');

@@ -28,16 +28,20 @@ function recipe_gaps(int $householdId, DateTimeImmutable $monday): array
  * @param int[] $excludeIds recettes déjà prévues cette semaine (ou à écarter)
  * @return array[] lignes de recipes
  */
-function pick_recipes(int $householdId, DateTimeImmutable $monday, int $count, int $avoidWeeks = 3, int $minVeg = 0, array $excludeIds = []): array
+function pick_recipes(int $householdId, DateTimeImmutable $monday, int $count, int $avoidWeeks = 3, int $minVeg = 0, array $excludeIds = [], ?bool $seasonal = null): array
 {
     if ($count <= 0) {
         return [];
     }
-    $recipes = db_all('SELECT id, name, category, favorite FROM recipes WHERE household_id = ? AND auto_ok = 1', [$householdId]);
+    $recipes = db_all('SELECT id, name, category, favorite, season_months FROM recipes WHERE household_id = ? AND auto_ok = 1', [$householdId]);
     $recipes = array_values(array_filter($recipes, fn($r) => !in_array((int) $r['id'], $excludeIds, true)));
     if (!$recipes) {
         return [];
     }
+
+    // Saison : bonus pour les recettes de saison, malus pour celles dont des produits frais sont hors saison (mois du milieu de la semaine).
+    $seasonal ??= (bool) db_val('SELECT seasonal_pref FROM households WHERE id = ?', [$householdId]);
+    $season = $seasonal ? recipes_season_map($recipes, (int) $monday->modify('+3 days')->format('n')) : [];
 
     $gaps = recipe_gaps($householdId, $monday);
     foreach ($recipes as &$r) {
@@ -45,7 +49,7 @@ function pick_recipes(int $householdId, DateTimeImmutable $monday, int $count, i
         $r['gap'] = (int) $gap;
         $r['recent'] = $gap < $avoidWeeks * 7;
         // Plus c'est ancien, plus c'est haut ; un peu de hasard pour varier d'une génération à l'autre.
-        $r['score'] = min($gap, 180) + ($r['favorite'] ? 40 : 0) + mt_rand(0, 60) - ($r['recent'] ? 1000 : 0);
+        $r['score'] = min($gap, 180) + ($r['favorite'] ? 40 : 0) + mt_rand(0, 60) - ($r['recent'] ? 1000 : 0) + ($season[(int) $r['id']]['points'] ?? 0);
     }
     unset($r);
     usort($recipes, fn($a, $b) => $b['score'] <=> $a['score']);
@@ -86,7 +90,7 @@ function pick_recipes(int $householdId, DateTimeImmutable $monday, int $count, i
  * Remplit la semaine : un repas par jour coché dans $dayIndexes (0 = lundi).
  * @return int nombre de repas créés
  */
-function generate_week(int $householdId, int $userId, DateTimeImmutable $monday, array $dayIndexes, string $slot, int $avoidWeeks, int $minVeg, bool $replace): int
+function generate_week(int $householdId, int $userId, DateTimeImmutable $monday, array $dayIndexes, string $slot, int $avoidWeeks, int $minVeg, bool $replace, ?bool $seasonal = null): int
 {
     $days = week_days($monday);
     $targets = [];
@@ -118,7 +122,7 @@ function generate_week(int $householdId, int $userId, DateTimeImmutable $monday,
             'SELECT recipe_id FROM meals WHERE household_id = ? AND recipe_id IS NOT NULL AND meal_date BETWEEN ? AND ?',
             [$householdId, ymd($monday), ymd($monday->modify('+6 days'))]
         ), 'recipe_id'));
-        $picked = pick_recipes($householdId, $monday, count($targets), $avoidWeeks, $minVeg, $already);
+        $picked = pick_recipes($householdId, $monday, count($targets), $avoidWeeks, $minVeg, $already, $seasonal);
         foreach ($picked as $i => $r) {
             db_insert('meals', [
                 'household_id' => $householdId, 'meal_date' => $targets[$i], 'slot' => $slot,

@@ -44,6 +44,7 @@ require SRC . '/db.php';
 require SRC . '/dates.php';
 require SRC . '/auth.php';
 require SRC . '/ingredients.php';
+require SRC . '/seasons.php';
 require SRC . '/planner.php';
 require SRC . '/ics.php';
 require SRC . '/schema.php';

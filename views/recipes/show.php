@@ -44,6 +44,41 @@
     <p class="k-help public-note"><?= icon('share', 'sm') ?> Recette publique : visible par les autres foyers (sans vos notes). Décochez l'option dans « Modifier » pour la retirer.</p>
 <?php endif; ?>
 
+<?php
+$hasSeasonInfo = $season['status'] !== 'none' || $r['season_months'] !== null || count(array_filter($seasonYear, fn($x) => $x !== 'none')) > 0;
+if ($hasSeasonInfo):
+    $mName = month_name($seasonMonth);
+    $names = fn(array $list) => implode(', ', array_map(fn($c) => $c['name'] . ' (' . season_range_label($c['mask']) . ')', array_slice($list, 0, 4)));
+    $namesIn = fn(array $list) => implode(', ', array_slice(array_unique(array_column($list, 'name')), 0, 5));
+?>
+<section class="season" aria-label="Saison de la recette">
+    <div class="season__line">
+        <?= season_badge($season) ?: '<span class="k-badge">hors des saisons</span>' ?>
+        <p class="season__text">
+            <?php if ($season['source'] === 'manual'): ?>
+                <?= $season['status'] === 'in' ? "De saison en $mName" : ($season['status'] === 'out' ? "Hors saison en $mName" : 'Toute l\'année') ?> selon les mois indiqués pour cette recette.
+            <?php elseif ($season['source'] === 'category'): ?>
+                Plat de saison froide ou chaude : de saison en <?= e($mName) ?>.
+            <?php elseif ($season['status'] === 'in'): ?>
+                De saison en <?= e($mName) ?> : <?= e($namesIn($season['in'])) ?>.
+            <?php elseif ($season['status'] === 'mixed'): ?>
+                En <?= e($mName) ?>, de saison : <?= e($namesIn($season['in'])) ?>. Hors saison : <?= e($names($season['out'])) ?>.
+            <?php elseif ($season['status'] === 'out'): ?>
+                Hors saison en <?= e($mName) ?> : <?= e($names($season['out'])) ?>.
+            <?php else: ?>
+                Aucun fruit ou légume frais décisif ce mois-ci.
+            <?php endif; ?>
+        </p>
+    </div>
+    <ol class="season__year" aria-label="Saison mois par mois">
+        <?php foreach ($seasonYear as $mi => $status): $mDate = new DateTimeImmutable(sprintf('2001-%02d-01', $mi)); ?>
+            <li class="season__m is-<?= e($status) ?><?= $mi === (int) $seasonMonth->format('n') ? ' is-now' : '' ?>"
+                title="<?= e(ucfirst(month_name($mDate))) ?> : <?= e(SEASON_LABELS[$status] ?? 'sans signal') ?>"><span aria-hidden="true"><?= e(mb_strtoupper(mb_substr(month_name($mDate), 0, 1))) ?></span><span class="sr-only"><?= e(month_name($mDate)) ?> : <?= e(SEASON_LABELS[$status] ?? 'sans signal') ?></span></li>
+        <?php endforeach; ?>
+    </ol>
+</section>
+<?php endif; ?>
+
 <div class="recipe-cols">
 <div class="recipe-main">
 <section class="k-card k-card--pad">

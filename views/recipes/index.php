@@ -21,11 +21,12 @@
     </span>
     <span class="k-selectwrap">
         <select class="k-select" name="sort" aria-label="Tri" data-autosubmit>
-            <?php foreach (['name' => 'Nom', 'times' => 'Les plus planifiées', 'last' => 'Dernière fois', 'recent' => 'Ajoutées récemment'] as $k => $label): ?>
+            <?php foreach (['name' => 'Nom', 'season' => 'De saison d\'abord', 'times' => 'Les plus planifiées', 'last' => 'Dernière fois', 'recent' => 'Ajoutées récemment'] as $k => $label): ?>
                 <option value="<?= $k ?>" <?= $sort === $k ? 'selected' : '' ?>><?= e($label) ?></option>
             <?php endforeach; ?>
         </select><?= icon('down', 'sm') ?>
     </span>
+    <label class="k-check filters__season"><input type="checkbox" name="saison" value="1" data-filter-season <?= $seasonOn ? 'checked' : '' ?>><?= icon('leaf', 'sm') ?>De saison en <?= e(month_name($seasonMonth)) ?></label>
     <?php if ($publicCount || $pub): ?>
         <label class="k-check filters__pub"><input type="checkbox" name="pub" value="1" data-autosubmit <?= $pub ? 'checked' : '' ?>>Afficher les recettes publiques<?= $publicCount ? ' (' . (int) $publicCount . ')' : '' ?></label>
     <?php endif; ?>
@@ -43,7 +44,7 @@
     <?php if (!$recipes): ?><p class="k-muted center rec-none">Vous n'avez pas encore de recette à vous.</p><?php endif; ?>
     <ul class="plain rec-list">
     <?php foreach ($recipes as $r): ?>
-        <li class="rec-row" data-filter-row data-name="<?= e(norm_key($r['name'])) ?>" data-cat="<?= e($r['category']) ?>">
+        <li class="rec-row" data-filter-row data-name="<?= e(norm_key($r['name'])) ?>" data-cat="<?= e($r['category']) ?>" data-season="<?= e($season[(int) $r['id']]['status']) ?>">
             <form method="post" action="<?= e(url('/recipes/' . (int) $r['id'] . '/favorite')) ?>" class="inline">
                 <?= csrf_field() ?><input type="hidden" name="back" value="<?= e(request_app_path()) ?>">
                 <button class="k-iconbtn fav<?= $r['favorite'] ? ' is-on' : '' ?>" aria-pressed="<?= $r['favorite'] ? 'true' : 'false' ?>"
@@ -59,6 +60,7 @@
             </a>
             <span class="rec-badges">
                 <?= cat_badge($r['category']) ?>
+                <?= season_badge($season[(int) $r['id']]) ?>
                 <?php if (!empty($r['is_public'])): ?><span class="k-badge k-badge--public" title="Visible par les autres foyers"><?= icon('share', 'sm') ?>publique</span><?php endif; ?>
                 <?php if (!$r['auto_ok']): ?><span class="k-badge k-badge--manual" title="Exclue de la génération automatique">manuelle</span><?php endif; ?>
             </span>
@@ -69,13 +71,13 @@
         <h2 class="rec-public-title"><?= icon('share') ?>Recettes publiques d'autres foyers <span class="k-meta">lecture seule · ajoutez-les à vos recettes pour les modifier et les planifier</span></h2>
         <ul class="plain rec-list">
         <?php foreach ($public as $r): ?>
-            <li class="rec-row rec-row--public" data-filter-row data-name="<?= e(norm_key($r['name'])) ?>" data-cat="<?= e($r['category']) ?>">
+            <li class="rec-row rec-row--public" data-filter-row data-name="<?= e(norm_key($r['name'])) ?>" data-cat="<?= e($r['category']) ?>" data-season="<?= e($season[(int) $r['id']]['status']) ?>">
                 <?= thumb($r['category']) ?>
                 <a class="rec-main" href="<?= e(url('/recipes/' . (int) $r['id'])) ?>">
                     <b><?= e($r['name']) ?></b>
                     <span class="k-meta">Partagée par <?= e($r['owner_name']) ?> · <?= $r['ingredient_count'] ? (int) $r['ingredient_count'] . ' ' . plural((int) $r['ingredient_count'], 'ingrédient', 'ingrédients') : 'sans ingrédients' ?></span>
                 </a>
-                <span class="rec-badges"><?= cat_badge($r['category']) ?><span class="k-badge k-badge--public"><?= icon('share', 'sm') ?>publique</span></span>
+                <span class="rec-badges"><?= cat_badge($r['category']) ?><?= season_badge($season[(int) $r['id']]) ?><span class="k-badge k-badge--public"><?= icon('share', 'sm') ?>publique</span></span>
             </li>
         <?php endforeach; ?>
         </ul>

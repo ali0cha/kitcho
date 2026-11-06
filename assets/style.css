@@ -117,6 +117,23 @@ body { margin: 0; min-height: 100vh; }
 .ob-steps li.is-done b { color: var(--muted); }
 @media (max-width: 420px) { .ob-next { flex-direction: column; } }
 
+/* ---------- Saison ---------- */
+.filters__season { display: inline-flex; align-items: center; gap: 6px; flex: 1 0 100%; margin: 2px 0 0; }
+.k-badge--season { background: var(--basil-soft, var(--brand-soft)); color: var(--basil-ink, var(--brand-ink)); display: inline-flex; align-items: center; gap: 4px; }
+.k-badge--season-part { background: var(--butter-soft); color: var(--butter-ink); display: inline-flex; align-items: center; gap: 4px; }
+.k-badge--offseason { background: var(--surface-3); color: var(--muted); }
+.season { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 14px; padding: 10px 14px; border-radius: var(--r-md); background: var(--surface-2); }
+.season__line { flex: 1 1 280px; display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.season__line .k-badge { flex: none; margin-top: 1px; }
+.season__text { margin: 0; font-size: 14px; line-height: 1.4; }
+.season__year { list-style: none; display: flex; gap: 3px; margin: 0; padding: 0; }
+.season__m { width: 22px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; font: 600 11px/1 var(--font-body); background: var(--surface-3); color: var(--muted); }
+.season__m.is-in { background: var(--brand); color: var(--on-brand); }
+.season__m.is-mixed { background: var(--butter); color: var(--butter-ink); }
+.season__m.is-out { background: transparent; border: 1px dashed var(--border-strong); }
+.season__m.is-now { outline: 2px solid var(--text); outline-offset: 1px; }
+.season-field { margin: 0; }
+
 /* ---------- Recettes publiques ---------- */
 .filters__pub { flex: 1 0 100%; margin: 2px 0 0; }
 .k-badge--public { background: var(--info-soft); color: var(--info-ink); display: inline-flex; align-items: center; gap: 4px; }

@@ -56,6 +56,7 @@ $todayStr = ymd(today());
                     <input class="k-input" id="g-veg" type="number" name="min_veg" value="2" min="0" max="7"></div>
             </div>
             <label class="k-check"><input type="checkbox" name="replace" value="1">Remplacer les repas déjà planifiés sur ces créneaux</label>
+            <label class="k-check"><input type="checkbox" name="seasonal" value="1" <?= !isset($hh['seasonal_pref']) || $hh['seasonal_pref'] ? 'checked' : '' ?>><?= icon('leaf', 'sm') ?>Privilégier les recettes de saison (<?= e(month_name($monday->modify('+3 days'))) ?>)</label>
             <div><button class="k-btn k-btn--primary"><?= icon('spark') ?>Générer</button></div>
             <p class="k-help">Variété garantie : les plats récents sont écartés, les favoris sont privilégiés et une même catégorie n'est pas répétée à l'excès. Changez un plat avec ↻.</p>
         </form>

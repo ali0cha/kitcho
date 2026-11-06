@@ -54,15 +54,22 @@ function recipes_index(): void
     $public = [];
     if ($pub && $publicCount) {
         $public = db_all(
-            'SELECT r.id, r.name, r.category, h.name AS owner_name,
+            'SELECT r.id, r.name, r.category, r.season_months, h.name AS owner_name,
                     (SELECT COUNT(*) FROM recipe_ingredients i WHERE i.recipe_id = r.id) AS ingredient_count
                FROM recipes r JOIN households h ON h.id = r.household_id
               WHERE ' . PUBLIC_RECIPES_WHERE . ' ORDER BY r.name LIMIT 1000',
             [$hid, $hid]
         );
     }
+    $month = (int) today()->format('n');
+    $season = recipes_season_map(array_merge($recipes, $public), $month);
+    if ($sort === 'season') {                       // de saison d'abord, hors saison en dernier
+        $rank = ['in' => 0, 'mixed' => 1, 'none' => 2, 'out' => 3];
+        usort($recipes, fn($a, $b) => [$rank[$season[$a['id']]['status']], $a['name']] <=> [$rank[$season[$b['id']]['status']], $b['name']]);
+    }
     render('recipes/index', [
         'title' => 'Recettes', 'recipes' => $recipes, 'q' => $q, 'cat' => $cat, 'sort' => $sort,
+        'season' => $season, 'seasonOn' => input_str('saison') === '1', 'seasonMonth' => today(),
         'pub' => $pub, 'public' => $public, 'publicCount' => $publicCount,
         'total' => count($recipes) + count($public),
     ]);
@@ -84,7 +91,13 @@ function recipes_show(int $id): void
     // Nombre de personnes affiché : ?p=N, sinon celui du foyer. Les quantités sont recalculées par rapport aux portions de la recette.
     $people = input_int('p');
     $people = $people !== null && $people >= 1 && $people <= 30 ? $people : (int) $hh['default_servings'];
+    $month = (int) today()->format('n');
+    $override = $r['season_months'] !== null ? (int) $r['season_months'] : null;
+    $classified = season_classify($ings);
     render('recipes/show', [
+        'season' => season_status($classified, $month, $override, (string) $r['category']),
+        'seasonYear' => season_year($classified, $override, (string) $r['category']),
+        'seasonMonth' => today(),
         'title' => $r['name'], 'r' => $r, 'ings' => $ings, 'steps' => $steps, 'history' => $history, 'hh' => $hh,
         'people' => $people, 'baseServings' => max(1, (int) $r['servings']), 'own' => $own, 'copyId' => $copyId,
     ]);
@@ -110,7 +123,7 @@ function recipes_copy(int $id): void
         $newId = db_insert('recipes', [
             'household_id' => $hh['id'], 'name' => $r['name'], 'category' => $r['category'], 'url' => $r['url'],
             'servings' => $r['servings'], 'prep_minutes' => $r['prep_minutes'], 'cook_minutes' => $r['cook_minutes'],
-            'total_minutes' => $r['total_minutes'], 'favorite' => 0, 'auto_ok' => 1, 'is_public' => 0,
+            'total_minutes' => $r['total_minutes'], 'favorite' => 0, 'auto_ok' => 1, 'is_public' => 0, 'season_months' => $r['season_months'],
             'source_id' => $r['id'], 'created_by' => current_user()['id'],
         ]);
         db_run('INSERT INTO recipe_ingredients (recipe_id, name, quantity, unit, aisle, position) SELECT ?, name, quantity, unit, aisle, position FROM recipe_ingredients WHERE recipe_id = ?', [$newId, $id]);
@@ -139,13 +152,14 @@ function recipe_from_input(): array
         'favorite' => input_str('favorite') === '1' ? 1 : 0,
         'auto_ok'  => input_str('auto_ok') === '1' ? 1 : 0,
         'is_public' => input_str('is_public') === '1' ? 1 : 0,
+        'season_months' => season_mask_from_input((array) ($_POST['season'] ?? [])),
     ];
 }
 
 function recipes_form(?int $id = null): void
 {
     $hh = require_household();
-    $recipe = ['name' => '', 'category' => 'autre', 'url' => '', 'notes' => '', 'servings' => $hh['default_servings'], 'favorite' => 0, 'auto_ok' => 1, 'is_public' => 0];
+    $recipe = ['name' => '', 'category' => 'autre', 'url' => '', 'notes' => '', 'servings' => $hh['default_servings'], 'favorite' => 0, 'auto_ok' => 1, 'is_public' => 0, 'season_months' => null];
     $ingText = '';
     $stepsText = '';
     if ($id !== null) {

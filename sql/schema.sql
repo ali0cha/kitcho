@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS households (
     id               INT UNSIGNED NOT NULL AUTO_INCREMENT,
     name             VARCHAR(100) NOT NULL,
     default_servings TINYINT UNSIGNED NOT NULL DEFAULT 4,
+    seasonal_pref    TINYINT(1) NOT NULL DEFAULT 1,   -- génération : privilégier les recettes de saison
     created_by       INT UNSIGNED NULL,
     created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -67,6 +68,7 @@ CREATE TABLE IF NOT EXISTS recipes (
     auto_ok      TINYINT(1) NOT NULL DEFAULT 1,
     is_public    TINYINT(1) NOT NULL DEFAULT 0,   -- visible par les autres foyers (lecture seule, copiable)
     source_id    INT UNSIGNED NULL,               -- recette publique dont celle-ci est une copie
+    season_months SMALLINT UNSIGNED NULL,         -- mois de saison cochés à la main (bit 0 = janvier) ; NULL = calcul automatique
     created_by   INT UNSIGNED NULL,
     created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),

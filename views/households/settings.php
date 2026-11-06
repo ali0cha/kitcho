@@ -40,6 +40,8 @@
         <div class="k-field"><label class="k-label" for="s-serv">Nombre de portions par défaut</label>
             <input class="k-input" id="s-serv" type="number" name="default_servings" value="<?= (int) $hh['default_servings'] ?>" min="1" max="30">
             <p class="k-help">Les quantités de la liste de courses sont adaptées à ce nombre de personnes (modifiable repas par repas).</p></div>
+        <label class="k-check"><input type="checkbox" name="seasonal_pref" value="1" <?= !isset($hh['seasonal_pref']) || $hh['seasonal_pref'] ? 'checked' : '' ?>>Privilégier les recettes de saison dans les menus générés</label>
+        <p class="k-help">Les recettes dont les fruits et légumes frais sont de saison (en Belgique) sont proposées plus souvent, celles qui en contiennent hors saison un peu moins. Vous pouvez aussi le décider à chaque génération.</p>
         <div><button class="k-btn k-btn--secondary">Enregistrer</button></div>
     </form>
 </section>

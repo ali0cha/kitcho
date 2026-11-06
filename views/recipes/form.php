@@ -46,6 +46,18 @@
         <p class="k-help">Une étape par paragraphe, séparés par une ligne vide. Les numéros sont ajoutés tout seuls. Une ligne commençant par « # » devient un intertitre (« # Pour la pâte »).</p></div>
     <div class="k-field"><label class="k-label" for="r-notes">Notes</label>
         <textarea class="k-textarea" id="r-notes" name="notes" rows="3"><?= e($recipe['notes'] ?? '') ?></textarea></div>
+    <fieldset class="k-fieldset season-field">
+        <legend class="k-label">Saison (facultatif)</legend>
+        <div class="day-chips">
+            <?php foreach (['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'] as $mi => $mLabel): ?>
+                <label class="k-day" aria-label="<?= e(month_name(new DateTimeImmutable(sprintf('2001-%02d-01', $mi + 1)))) ?>">
+                    <input type="checkbox" class="sr-only" name="season[]" value="<?= $mi + 1 ?>" <?= !empty($recipe['season_months']) && ((int) $recipe['season_months'] >> $mi & 1) ? 'checked' : '' ?>>
+                    <?= e($mLabel) ?>
+                </label>
+            <?php endforeach; ?>
+        </div>
+        <p class="k-help">Laissez vide : Kitcho déduit la saison des fruits et légumes frais de la recette. Cochez les mois pour la fixer vous-même (une soupe d'hiver, un plat d'été…) ; cela remplace le calcul.</p>
+    </fieldset>
     <label class="k-check"><input type="checkbox" name="favorite" value="1" <?= $recipe['favorite'] ? 'checked' : '' ?>>Favori (proposé plus souvent)</label>
     <label class="k-check"><input type="checkbox" name="auto_ok" value="1" <?= $recipe['auto_ok'] ? 'checked' : '' ?>>Proposer dans la génération automatique</label>
     <label class="k-check"><input type="checkbox" name="is_public" value="1" <?= !empty($recipe['is_public']) ? 'checked' : '' ?>>Recette publique : visible par les autres foyers de Kitcho</label>
