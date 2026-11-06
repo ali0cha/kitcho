@@ -26,9 +26,12 @@
             <?php endforeach; ?>
         </select><?= icon('down', 'sm') ?>
     </span>
+    <?php if ($publicCount || $pub): ?>
+        <label class="k-check filters__pub"><input type="checkbox" name="pub" value="1" data-autosubmit <?= $pub ? 'checked' : '' ?>>Afficher les recettes publiques<?= $publicCount ? ' (' . (int) $publicCount . ')' : '' ?></label>
+    <?php endif; ?>
 </form>
 
-<?php if (!$recipes): ?>
+<?php if (!$recipes && !$public): ?>
     <section class="k-card k-empty">
         <?= empty_art() ?>
         <h2>Aucune recette pour le moment</h2>
@@ -37,6 +40,7 @@
     </section>
 <?php else: ?>
 <div class="k-card flush">
+    <?php if (!$recipes): ?><p class="k-muted center rec-none">Vous n'avez pas encore de recette à vous.</p><?php endif; ?>
     <ul class="plain rec-list">
     <?php foreach ($recipes as $r): ?>
         <li class="rec-row" data-filter-row data-name="<?= e(norm_key($r['name'])) ?>" data-cat="<?= e($r['category']) ?>">
@@ -55,11 +59,27 @@
             </a>
             <span class="rec-badges">
                 <?= cat_badge($r['category']) ?>
+                <?php if (!empty($r['is_public'])): ?><span class="k-badge k-badge--public" title="Visible par les autres foyers"><?= icon('share', 'sm') ?>publique</span><?php endif; ?>
                 <?php if (!$r['auto_ok']): ?><span class="k-badge k-badge--manual" title="Exclue de la génération automatique">manuelle</span><?php endif; ?>
             </span>
         </li>
     <?php endforeach; ?>
     </ul>
+    <?php if ($public): ?>
+        <h2 class="rec-public-title"><?= icon('share') ?>Recettes publiques d'autres foyers <span class="k-meta">lecture seule · ajoutez-les à vos recettes pour les modifier et les planifier</span></h2>
+        <ul class="plain rec-list">
+        <?php foreach ($public as $r): ?>
+            <li class="rec-row rec-row--public" data-filter-row data-name="<?= e(norm_key($r['name'])) ?>" data-cat="<?= e($r['category']) ?>">
+                <?= thumb($r['category']) ?>
+                <a class="rec-main" href="<?= e(url('/recipes/' . (int) $r['id'])) ?>">
+                    <b><?= e($r['name']) ?></b>
+                    <span class="k-meta">Partagée par <?= e($r['owner_name']) ?> · <?= $r['ingredient_count'] ? (int) $r['ingredient_count'] . ' ' . plural((int) $r['ingredient_count'], 'ingrédient', 'ingrédients') : 'sans ingrédients' ?></span>
+                </a>
+                <span class="rec-badges"><?= cat_badge($r['category']) ?><span class="k-badge k-badge--public"><?= icon('share', 'sm') ?>publique</span></span>
+            </li>
+        <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
     <p class="k-muted center filter-empty" data-filter-empty hidden>Aucune recette ne correspond.</p>
 </div>
 <?php endif; ?>

@@ -10,15 +10,33 @@ function load_recipe(int $id, int $householdId): array
     return $r;
 }
 
+/**
+ * Recette visible par ce foyer : la sienne, ou une recette publique d'un autre foyer (lecture seule).
+ * Ajoute 'owner_name' et 'is_own'.
+ */
+function load_recipe_viewable(int $id, int $householdId): array
+{
+    $r = db_one('SELECT r.*, h.name AS owner_name FROM recipes r JOIN households h ON h.id = r.household_id WHERE r.id = ?', [$id]);
+    if (!$r || ((int) $r['household_id'] !== $householdId && !(int) $r['is_public'])) {
+        abort(404, 'Recette introuvable.');
+    }
+    $r['is_own'] = (int) $r['household_id'] === $householdId;
+    return $r;
+}
+
+/** Recettes publiques des autres foyers, hors celles que ce foyer a déjà copiées. */
+const PUBLIC_RECIPES_WHERE = 'r.is_public = 1 AND r.household_id <> ? AND NOT EXISTS (SELECT 1 FROM recipes c WHERE c.household_id = ? AND c.source_id = r.id)';
+
 function recipes_index(): void
 {
     $hh = require_household();
+    $hid = (int) $hh['id'];
     $q = input_str('q');
     $cat = input_str('cat');
     $sort = input_str('sort', 'name');
+    $pub = input_str('pub') === '1';
 
     // Toutes les recettes sont envoyées : le filtrage (texte + catégorie) se fait dans le navigateur pendant la frappe.
-    $params = [$hh['id']];
     $order = match ($sort) {
         'recent' => 'r.id DESC',
         'last'   => 'last_planned IS NULL, last_planned DESC, r.name',
@@ -30,28 +48,80 @@ function recipes_index(): void
                 (SELECT MAX(m.meal_date) FROM meals m WHERE m.recipe_id = r.id) AS last_planned,
                 (SELECT COUNT(*) FROM meals m WHERE m.recipe_id = r.id) AS times_planned
            FROM recipes r WHERE r.household_id = ? ORDER BY $order",
-        $params
+        [$hid]
     );
+    $publicCount = (int) db_val('SELECT COUNT(*) FROM recipes r WHERE ' . PUBLIC_RECIPES_WHERE, [$hid, $hid]);
+    $public = [];
+    if ($pub && $publicCount) {
+        $public = db_all(
+            'SELECT r.id, r.name, r.category, h.name AS owner_name,
+                    (SELECT COUNT(*) FROM recipe_ingredients i WHERE i.recipe_id = r.id) AS ingredient_count
+               FROM recipes r JOIN households h ON h.id = r.household_id
+              WHERE ' . PUBLIC_RECIPES_WHERE . ' ORDER BY r.name LIMIT 1000',
+            [$hid, $hid]
+        );
+    }
     render('recipes/index', [
         'title' => 'Recettes', 'recipes' => $recipes, 'q' => $q, 'cat' => $cat, 'sort' => $sort,
-        'total' => (int) db_val('SELECT COUNT(*) FROM recipes WHERE household_id = ?', [$hh['id']]),
+        'pub' => $pub, 'public' => $public, 'publicCount' => $publicCount,
+        'total' => count($recipes) + count($public),
     ]);
 }
 
 function recipes_show(int $id): void
 {
     $hh = require_household();
-    $r = load_recipe($id, (int) $hh['id']);
+    $r = load_recipe_viewable($id, (int) $hh['id']);
     $ings = db_all('SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY position', [$id]);
     $steps = recipe_steps($id);
-    $history = db_all('SELECT meal_date, slot FROM meals WHERE recipe_id = ? ORDER BY meal_date DESC LIMIT 8', [$id]);
+    $own = $r['is_own'];
+    $history = $own ? db_all('SELECT meal_date, slot FROM meals WHERE recipe_id = ? ORDER BY meal_date DESC LIMIT 8', [$id]) : [];
+    $copyId = null;
+    if (!$own) {
+        $r['notes'] = null;                       // les notes restent privées au foyer qui partage
+        $copyId = db_val('SELECT id FROM recipes WHERE household_id = ? AND source_id = ? ORDER BY id LIMIT 1', [$hh['id'], $id]) ?: null;
+    }
     // Nombre de personnes affiché : ?p=N, sinon celui du foyer. Les quantités sont recalculées par rapport aux portions de la recette.
     $people = input_int('p');
     $people = $people !== null && $people >= 1 && $people <= 30 ? $people : (int) $hh['default_servings'];
     render('recipes/show', [
         'title' => $r['name'], 'r' => $r, 'ings' => $ings, 'steps' => $steps, 'history' => $history, 'hh' => $hh,
-        'people' => $people, 'baseServings' => max(1, (int) $r['servings']),
+        'people' => $people, 'baseServings' => max(1, (int) $r['servings']), 'own' => $own, 'copyId' => $copyId,
     ]);
+}
+
+/** Copie une recette publique d'un autre foyer (ingrédients et étapes compris) dans les recettes de ce foyer. */
+function recipes_copy(int $id): void
+{
+    $hh = require_household();
+    require_post();
+    $r = load_recipe_viewable($id, (int) $hh['id']);
+    if ($r['is_own']) {
+        redirect('/recipes/' . $id);
+    }
+    $existing = db_val('SELECT id FROM recipes WHERE household_id = ? AND source_id = ? ORDER BY id LIMIT 1', [$hh['id'], $id]);
+    if ($existing) {
+        flash('info', 'Cette recette est déjà dans vos recettes.');
+        redirect('/recipes/' . (int) $existing);
+    }
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        $newId = db_insert('recipes', [
+            'household_id' => $hh['id'], 'name' => $r['name'], 'category' => $r['category'], 'url' => $r['url'],
+            'servings' => $r['servings'], 'prep_minutes' => $r['prep_minutes'], 'cook_minutes' => $r['cook_minutes'],
+            'total_minutes' => $r['total_minutes'], 'favorite' => 0, 'auto_ok' => 1, 'is_public' => 0,
+            'source_id' => $r['id'], 'created_by' => current_user()['id'],
+        ]);
+        db_run('INSERT INTO recipe_ingredients (recipe_id, name, quantity, unit, aisle, position) SELECT ?, name, quantity, unit, aisle, position FROM recipe_ingredients WHERE recipe_id = ?', [$newId, $id]);
+        db_run('INSERT INTO recipe_steps (recipe_id, position, kind, text) SELECT ?, position, kind, text FROM recipe_steps WHERE recipe_id = ?', [$newId, $id]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+    flash('success', 'Recette « ' . $r['name'] . ' » ajoutée à vos recettes : vous pouvez la modifier et la planifier.');
+    redirect('/recipes/' . $newId);
 }
 
 function recipe_from_input(): array
@@ -68,13 +138,14 @@ function recipe_from_input(): array
         'total_minutes' => minutes_input('total_minutes'),
         'favorite' => input_str('favorite') === '1' ? 1 : 0,
         'auto_ok'  => input_str('auto_ok') === '1' ? 1 : 0,
+        'is_public' => input_str('is_public') === '1' ? 1 : 0,
     ];
 }
 
 function recipes_form(?int $id = null): void
 {
     $hh = require_household();
-    $recipe = ['name' => '', 'category' => 'autre', 'url' => '', 'notes' => '', 'servings' => $hh['default_servings'], 'favorite' => 0, 'auto_ok' => 1];
+    $recipe = ['name' => '', 'category' => 'autre', 'url' => '', 'notes' => '', 'servings' => $hh['default_servings'], 'favorite' => 0, 'auto_ok' => 1, 'is_public' => 0];
     $ingText = '';
     $stepsText = '';
     if ($id !== null) {

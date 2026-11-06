@@ -9,6 +9,8 @@ const SCHEMA_COLUMNS = [
     ['recipes', 'prep_minutes', 'SMALLINT UNSIGNED NULL'],
     ['recipes', 'cook_minutes', 'SMALLINT UNSIGNED NULL'],
     ['recipes', 'total_minutes', 'SMALLINT UNSIGNED NULL'],
+    ['recipes', 'is_public', 'TINYINT(1) NOT NULL DEFAULT 0'],
+    ['recipes', 'source_id', 'INT UNSIGNED NULL'],
 ];
 
 /** Applique sql/schema.sql (idempotent) puis ajoute les colonnes manquantes. Retourne le nombre d'instructions exécutées. */

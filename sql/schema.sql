@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS recipes (
     total_minutes SMALLINT UNSIGNED NULL,
     favorite     TINYINT(1) NOT NULL DEFAULT 0,
     auto_ok      TINYINT(1) NOT NULL DEFAULT 1,
+    is_public    TINYINT(1) NOT NULL DEFAULT 0,   -- visible par les autres foyers (lecture seule, copiable)
+    source_id    INT UNSIGNED NULL,               -- recette publique dont celle-ci est une copie
     created_by   INT UNSIGNED NULL,
     created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),

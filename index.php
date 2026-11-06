@@ -42,6 +42,7 @@ $routes = [
     ['GET|POST', '#^/recipes/(\d+)/edit$#',       'recipes_edit'],
     ['POST',     '#^/recipes/(\d+)/delete$#',     'recipes_delete'],
     ['POST',     '#^/recipes/(\d+)/favorite$#',   'recipes_favorite'],
+    ['POST',     '#^/recipes/(\d+)/copy$#',       'recipes_copy'],
 
     ['GET',  '#^/week$#',                         'planning_week'],
     ['POST', '#^/onboarding/dismiss$#',           'onboarding_dismiss'],

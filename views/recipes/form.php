@@ -48,6 +48,8 @@
         <textarea class="k-textarea" id="r-notes" name="notes" rows="3"><?= e($recipe['notes'] ?? '') ?></textarea></div>
     <label class="k-check"><input type="checkbox" name="favorite" value="1" <?= $recipe['favorite'] ? 'checked' : '' ?>>Favori (proposé plus souvent)</label>
     <label class="k-check"><input type="checkbox" name="auto_ok" value="1" <?= $recipe['auto_ok'] ? 'checked' : '' ?>>Proposer dans la génération automatique</label>
+    <label class="k-check"><input type="checkbox" name="is_public" value="1" <?= !empty($recipe['is_public']) ? 'checked' : '' ?>>Recette publique : visible par les autres foyers de Kitcho</label>
+    <p class="k-help">Les autres foyers pourront la consulter (nom de votre foyer, ingrédients, étapes, lien) et en faire une copie ; vos notes restent privées et ils ne peuvent pas la modifier. Décochez pour la retirer.</p>
     <div class="row-form">
         <button class="k-btn k-btn--primary">Enregistrer</button>
         <a class="k-btn k-btn--secondary" href="<?= e(url($id ? '/recipes/' . $id : '/recipes')) ?>">Annuler</a>

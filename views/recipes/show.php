@@ -15,12 +15,34 @@
         </p>
     </div>
     <div class="page-head__actions">
+        <?php if ($own): ?>
         <a class="k-btn k-btn--secondary k-btn--sm" href="<?= e(url('/recipes/' . (int) $r['id'] . '/edit')) ?>"><?= icon('edit', 'sm') ?>Modifier</a>
         <form method="post" action="<?= e(url('/recipes/' . (int) $r['id'] . '/delete')) ?>" class="inline" data-confirm="Supprimer cette recette ?">
             <?= csrf_field() ?><button class="k-btn k-btn--danger-o k-btn--sm"><?= icon('trash', 'sm') ?>Supprimer</button>
         </form>
+        <?php endif; ?>
     </div>
 </div>
+
+<?php if (!$own): ?>
+    <div class="k-banner public-banner" role="status">
+        <?= icon('share') ?>
+        <div class="k-banner__body"><b>Recette publique partagée par <?= e($r['owner_name']) ?></b>
+            <?php if ($copyId): ?>
+                Elle est déjà dans vos recettes. <a href="<?= e(url('/recipes/' . (int) $copyId)) ?>">Ouvrir ma copie</a>
+            <?php else: ?>
+                Vous la consultez en lecture seule. Ajoutez-la à vos recettes pour la modifier, la planifier et l'inclure dans votre liste de courses.
+            <?php endif; ?>
+        </div>
+        <?php if (!$copyId): ?>
+            <form method="post" action="<?= e(url('/recipes/' . (int) $r['id'] . '/copy')) ?>" class="inline">
+                <?= csrf_field() ?><button class="k-btn k-btn--primary k-btn--sm"><?= icon('plus', 'sm') ?>Ajouter à mes recettes</button>
+            </form>
+        <?php endif; ?>
+    </div>
+<?php elseif (!empty($r['is_public'])): ?>
+    <p class="k-help public-note"><?= icon('share', 'sm') ?> Recette publique : visible par les autres foyers (sans vos notes). Décochez l'option dans « Modifier » pour la retirer.</p>
+<?php endif; ?>
 
 <div class="recipe-cols">
 <div class="recipe-main">
@@ -52,7 +74,7 @@
     <?php else: ?>
         <div class="k-banner k-banner--warn" role="status">
             <?= icon('warn') ?><div class="k-banner__body"><b>Aucun ingrédient</b>Ce plat n'apparaîtra pas dans la liste de courses.
-                <a href="<?= e(url('/recipes/' . (int) $r['id'] . '/edit')) ?>">Ajouter des ingrédients</a></div>
+                <?php if ($own): ?><a href="<?= e(url('/recipes/' . (int) $r['id'] . '/edit')) ?>">Ajouter des ingrédients</a><?php endif; ?></div>
         </div>
     <?php endif; ?>
 </section>
@@ -71,17 +93,18 @@
         </ol>
     <?php else: ?>
         <div class="k-muted steps-empty">Aucune étape pour le moment.
-            <?php if (safe_url($r['url'])): ?>
+            <?php if ($own && safe_url($r['url'])): ?>
                 <form method="post" action="<?= e(url('/recipes/' . (int) $r['id'] . '/refetch')) ?>" class="inline">
                     <?= csrf_field() ?><button class="k-btn k-btn--secondary k-btn--sm"><?= icon('down', 'sm') ?>Récupérer depuis le lien</button>
                 </form>
             <?php endif; ?>
-            <a href="<?= e(url('/recipes/' . (int) $r['id'] . '/edit') . '#r-steps') ?>">Écrire les étapes</a></div>
+            <?php if ($own): ?><a href="<?= e(url('/recipes/' . (int) $r['id'] . '/edit') . '#r-steps') ?>">Écrire les étapes</a><?php endif; ?></div>
     <?php endif; ?>
     <?php if ($r['notes']): ?><h3>Notes</h3><p class="pre"><?= e($r['notes']) ?></p><?php endif; ?>
 </section>
 </div>
 
+<?php if ($own): ?>
 <section class="k-card k-card--pad">
     <h2>Planifier</h2>
     <form method="post" action="<?= e(url('/meals/add')) ?>" class="stack">
@@ -104,4 +127,5 @@
         </ul>
     <?php endif; ?>
 </section>
+<?php endif; ?>
 </div>
