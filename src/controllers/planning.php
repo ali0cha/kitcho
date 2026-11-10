@@ -302,8 +302,11 @@ function week_generate(): void
         flash('error', "Ajoutez d'abord des recettes pour pouvoir générer un menu.");
         redirect_week($monday);
     }
-    $n = generate_week((int) $hh['id'], (int) current_user()['id'], $monday, $days, $slot, $avoid, $minVeg, input_str('replace') === '1', input_str('seasonal') === '1');
+    $n = generate_week((int) $hh['id'], (int) current_user()['id'], $monday, $days, $slot, $avoid, $minVeg, input_str('replace') === '1', input_str('seasonal') === '1', $report);
     flash($n ? 'success' : 'info', $n ? "$n " . plural($n, 'repas généré', 'repas générés') . '.' : 'Rien à générer : les créneaux choisis sont déjà remplis.');
+    if ($n && !empty($report['similar'])) {
+        flash('info', 'Votre choix de recettes est trop limité pour tout varier : ' . $report['similar'] . ' ' . plural((int) $report['similar'], 'repas ressemble', 'repas se ressemblent') . ' à un autre (même plat de base ou mêmes ingrédients). Ajoutez des recettes différentes pour plus de variété.');
+    }
     redirect_week($monday);
 }
 
